@@ -7,7 +7,7 @@ slider to watch it change across time. It's built to be **generic**: the map of 
 is shared, and each dataset is just a data file. Adding a new dataset means dropping in
 a JSON file — no code changes.
 
-**Status:** in development. The first dataset is **Haredi (ultra-orthodox) vote share
+**Status:** working POC. The first dataset is **Haredi (ultra-orthodox) vote share
 per city across Knesset elections 19–25 (2013–2022)**. More datasets (population,
 turnout, income, …) can be added later.
 
@@ -24,15 +24,19 @@ See [`CLAUDE.md`](./CLAUDE.md) for the architecture and the data-format contract
 
 ## Running locally
 
-> The app is being built; these are the intended commands.
+Requires Node 18.17+ (Node 22 recommended) and Python 3.
 
 ```bash
 npm install
 npm run dev          # http://localhost:3000
 
-# rebuild the data files (Python pipeline):
+# rebuild the data files (Python pipeline; outputs into public/data/):
 python pipeline/build_geo.py        # -> public/data/geo.json
-python pipeline/build_haredi.py     # -> public/data/datasets/haredi-vote.json
+python pipeline/build_haredi.py     # -> public/data/datasets/haredi-vote.json + registers it
+
+# tests:
+python -m pytest pipeline/tests/    # pipeline logic
+npx vitest run                      # colorScale
 ```
 
 ## Adding a new dataset

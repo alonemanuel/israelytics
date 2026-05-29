@@ -65,3 +65,31 @@ features and fragile; planar sidesteps the problem entirely.
 **What:** Coordinates outside an Israel bounding box are dropped during the geo build.
 **Why:** The coordinate source mis-geocodes some names that collide with foreign places
 (e.g. Hebron → Illinois, Uman → Ukraine), which otherwise break the map's auto-fit.
+
+### 2026-05-29 — Geo universe = cities in the election files; weight = eligible voters
+**What:** `geo.json` contains exactly the localities that appear in the election CSVs
+(resolved to geometry), and each city's `weight` is its max eligible voters (בזב) across
+elections.
+**Why:** The election files are the most complete per-city list of Israel with a size
+measure. A dataset-independent size proxy has to come from somewhere; eligible voters is
+the best signal available.
+**Rejected:** Including every polygon/coordinate city (bloats the base map with places no
+dataset covers). **Future option:** expand the universe if a dataset needs a city absent
+from the election files.
+
+### 2026-05-29 — D3 owns the SVG inside React via refs
+**What:** `MapView` keeps the D3 selection/projection/zoom in refs. One effect (keyed on
+geo) draws geometry + wires zoom once; a second effect (keyed on dataset/timestep) only
+recolors. React owns the picker/slider/legend.
+**Why:** Zoom/pan state must survive re-renders, and redrawing 1,200 shapes on every
+slider tick is wasteful. Separating "draw once" from "recolor" keeps interaction smooth.
+**Rejected:** Rendering every SVG element as React nodes (clean, but fights D3's zoom and
+re-renders the whole map on each timestep).
+
+### 2026-05-29 — Generic color schemes via an interpolator registry
+**What:** `lib/colorScale.ts` maps a dataset's `scheme` string to a d3 interpolator from a
+small registry, supporting sequential (with optional `power`) and diverging (with
+`midpoint`).
+**Why:** New datasets pick a color treatment by name in their JSON; no frontend changes.
+**Rejected:** Importing all of d3-scale-chromatic dynamically (unnecessary; a curated
+registry is clearer and smaller).
