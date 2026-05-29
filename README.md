@@ -17,7 +17,7 @@ turnout, income, …) can be added later.
   built once, shared by all datasets.
 - Each **dataset** (`public/data/datasets/<id>.json`) holds values per city per
   time-step, plus how to color them.
-- The website joins the two by city name and draws the map.
+- The website joins the two by CBS locality code and draws the map.
 
 See [`CLAUDE.md`](./CLAUDE.md) for the architecture and the data-format contract, and
 [`docs/DECISIONS.md`](./docs/DECISIONS.md) for why things are built the way they are.
@@ -31,8 +31,8 @@ npm install
 npm run dev          # http://localhost:3000
 
 # rebuild the data files (Python pipeline; outputs into public/data/):
-python pipeline/build_geo.py        # -> public/data/geo.json
-python pipeline/build_haredi.py     # -> public/data/datasets/haredi-vote.json + registers it
+python pipeline/basemap/build_geo.py              # -> public/data/geo.json
+python pipeline/datasets/haredi-vote/build.py     # -> datasets/haredi-vote.json + registers it
 
 # tests:
 python -m pytest pipeline/tests/    # pipeline logic
@@ -41,10 +41,16 @@ npx vitest run                      # colorScale
 
 ## Adding a new dataset
 
-1. Add a builder under `pipeline/` that reads your raw source and emits a dataset JSON
-   matching the format in `CLAUDE.md`, keyed by Israeli city name.
-2. Register it in `public/data/datasets/index.json`.
-3. It shows up in the dataset picker automatically.
+Each dataset is a self-contained **provenance package** — raw files, where they came
+from, the method, and the builder all live together so it stays reproducible.
+
+1. `cp -r pipeline/datasets/_TEMPLATE pipeline/datasets/<id>`
+2. Put the raw files you downloaded into `<id>/sources/` (committed as-is).
+3. Fill in `<id>/SOURCE.md` — the source links, dates, and how raw → numbers.
+4. Implement `<id>/build.py` to emit `public/data/datasets/<id>.json` keyed by CBS
+   locality code. It registers itself and shows up in the picker automatically.
+
+See `pipeline/datasets/haredi-vote/` as a worked example.
 
 ## Tech
 

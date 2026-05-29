@@ -1,28 +1,21 @@
-"""Single source of truth for the join key.
+"""Single source of truth for the join key: the CBS locality code (סמל יישוב).
 
-Loads the polygon and coordinate geometry sources and resolves any Israeli
-locality name to a canonical key + geometry. Every dataset builder resolves
-names through here, so dataset city keys always line up with geo.json keys.
+Loads per-locality polygon boundaries from the CBS statistical areas GeoJSON
+(dissolved by SEMEL_YISHUV), keyed by CBS code. Falls back to coords.csv
+point data for the ~30 unrecognized Bedouin settlements missing from the CBS
+source.
 
-The output join key is the CBS locality code (סמל יישוב) — a stable numeric
-identifier assigned by the Israeli Central Bureau of Statistics. Builders call
-register_cbs_codes() (from elections.py) to populate the mapping, then use
-cbs_code_for() to translate internal canonical keys to CBS codes for output.
-
-Internally, a polygon city's canonical key is the normalized MUN_HEB name; a
-point city's canonical key is its tight_key (which collapses spelling variants).
-Aliases (an editable CSV) rewrite known renames/spellings before matching.
+The CBS source (localities.geojson) is derived from the CBS "Statistical Areas
+with Demographic Data" geodatabase, dissolved by locality code and reprojected
+to WGS84.
 """
 
 import csv
 import json
 import os
 
-from normalize import normalize, tight_key
+from normalize import normalize
 
-# Israel + West Bank + Golan bounding box. The coordinate source mis-geocodes
-# some names that collide with foreign places (Hebron -> USA, Uman -> Ukraine);
-# anything outside this box is rejected so it never lands on the map.
 IL_BBOX = (34.0, 36.0, 29.3, 33.45)   # lon_min, lon_max, lat_min, lat_max
 
 
@@ -33,86 +26,48 @@ def _in_israel(lat, lon):
 
 class GeoIndex:
     def __init__(self, sources_dir):
-        self._load_aliases(sources_dir)
-        self._load_polygons(sources_dir)
+        self._load_localities(sources_dir)
         self._load_coords(sources_dir)
-        self._cbs = {}  # canonical_key -> CBS code string
 
-    def _load_aliases(self, sources_dir):
-        path = os.path.join(sources_dir, "aliases.csv")
-        self.aliases = {}
-        if os.path.exists(path):
-            with open(path, encoding="utf-8") as f:
-                for r in csv.DictReader(f):
-                    self.aliases[tight_key(r["from"])] = tight_key(r["to"])
-
-    def _load_polygons(self, sources_dir):
-        path = os.path.join(sources_dir, "municipalities.geojson")
+    def _load_localities(self, sources_dir):
+        path = os.path.join(sources_dir, "localities.geojson")
         with open(path, encoding="utf-8") as f:
             fc = json.load(f)
-        self.poly_exact = {}     # normalized name -> canonical poly key
-        self.poly_tight = {}     # tight key       -> canonical poly key
-        self.poly_feature = {}   # canonical poly key -> GeoJSON feature
-        self.poly_name = {}      # canonical poly key -> MUN_HEB display name
+        self._poly = {}
         for feat in fc["features"]:
-            heb = feat["properties"].get("MUN_HEB", "")
-            key = normalize(heb)
-            if not key:
-                continue
-            self.poly_exact.setdefault(key, key)
-            self.poly_tight.setdefault(tight_key(heb), key)
-            self.poly_feature.setdefault(key, feat)
-            self.poly_name.setdefault(key, heb)
+            code = feat["properties"]["cbs_code"]
+            self._poly[code] = {
+                "geometry": feat["geometry"],
+                "name_he": feat["properties"]["name_he"],
+            }
 
     def _load_coords(self, sources_dir):
         path = os.path.join(sources_dir, "coords.csv")
-        self.coord_exact = {}    # normalized name -> (lat, lon)
-        self.coord_tight = {}    # tight key       -> (lat, lon)
-        self.coord_name = {}     # tight key       -> City display name
+        self._coords = {}
         with open(path, encoding="utf-8") as f:
             for r in csv.DictReader(f):
-                key = normalize(r["City"])
-                if not key:
+                name = r["City"].strip()
+                if not name:
                     continue
                 lat, lon = float(r["Latitude"]), float(r["Longitude"])
                 if not _in_israel(lat, lon):
                     continue
-                self.coord_exact.setdefault(key, (lat, lon))
-                tk = tight_key(r["City"])
-                self.coord_tight.setdefault(tk, (lat, lon))
-                self.coord_name.setdefault(tk, r["City"])
+                key = normalize(name)
+                self._coords.setdefault(key, {"lat": lat, "lon": lon, "name": name})
 
-    def resolve(self, name):
-        """Return (canonical_key, kind) where kind is 'polygon' or 'point', or
-        (None, None) if the name matches no geometry."""
-        key = normalize(name)
-        tkey = self.aliases.get(tight_key(name), tight_key(name))
-        poly_key = self.poly_exact.get(key) or self.poly_tight.get(tkey)
-        if poly_key:
-            return poly_key, "polygon"
-        if key in self.coord_exact:
-            return tight_key(name), "point"
-        if tkey in self.coord_tight:
-            return tkey, "point"
-        return None, None
+    def lookup(self, cbs_code, raw_name=None):
+        """Look up geometry for a CBS code. Returns (kind, name_he, geometry).
 
-    def register_cbs_code(self, canonical_key, cbs_code):
-        """Associate a CBS locality code with a canonical key."""
-        self._cbs.setdefault(canonical_key, str(cbs_code))
-
-    def cbs_code_for(self, canonical_key):
-        """Return the CBS code for a canonical key, or None."""
-        return self._cbs.get(canonical_key)
-
-    def name_for(self, canonical_key, kind):
-        if kind == "polygon":
-            return self.poly_name.get(canonical_key, canonical_key)
-        return self.coord_name.get(canonical_key, canonical_key)
-
-    def geometry_for(self, canonical_key, kind):
-        """For polygons returns the GeoJSON geometry; for points returns
-        {'lat':, 'lon':}."""
-        if kind == "polygon":
-            return self.poly_feature[canonical_key]["geometry"]
-        lat, lon = self.coord_tight[canonical_key]
-        return {"lat": lat, "lon": lon}
+        Falls back to coords.csv point data if the CBS code isn't in the
+        polygon source and raw_name is provided. Returns (None, None, None)
+        if no geometry found at all."""
+        code = str(cbs_code)
+        if code in self._poly:
+            p = self._poly[code]
+            return "polygon", p["name_he"], p["geometry"]
+        if raw_name:
+            key = normalize(raw_name)
+            if key in self._coords:
+                c = self._coords[key]
+                return "point", c["name"], {"lat": c["lat"], "lon": c["lon"]}
+        return None, None, None

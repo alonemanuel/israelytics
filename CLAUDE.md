@@ -35,16 +35,31 @@ This repo keeps three docs in sync with reality. **When you change the project, 
 
 ```
 pipeline/            Python: raw sources -> standard JSON (never knows about rendering)
-  common/normalize.py    canonical city-name normalization
-  common/geo_index.py    resolve(name) -> (canonical_key, kind) + CBS code mapping
-  build_geo.py           polygons + coords -> public/data/geo.json
-  build_haredi.py        election CSVs   -> public/data/datasets/haredi-vote.json
+  common/normalize.py    canonical city-name normalization (used for coords fallback)
+  common/geo_index.py    lookup(cbs_code) -> (kind, name, geometry)  [CBS code join]
+  common/elections.py    shared election-CSV reader + Haredi math
+  basemap/               the shared map of Israel — a provenance package
+    sources/             localities.geojson (CBS polygons), coords.csv, aliases.csv
+    SOURCE.md            where geometry came from + method
+    build_geo.py         -> public/data/geo.json
+  datasets/              one self-contained provenance package per dataset
+    _TEMPLATE/           copy to start a new dataset (SOURCE.md, build.py, sources/)
+    haredi-vote/
+      sources/           raw downloaded files (election CSVs 19-25), committed
+      SOURCE.md          source links + method + caveats
+      build.py           -> public/data/datasets/haredi-vote.json (+ registers it)
 app/                 Next.js App Router (TypeScript)
   page.tsx               client view: picker + map + timeline
 components/          DatasetPicker, MapView (D3 SVG + zoom/pan), Timeline, Legend
 lib/                 types.ts, colorScale.ts, useData.ts
 public/data/         geo.json, datasets/<id>.json, datasets/index.json
 ```
+
+Each dataset (and the basemap) is a **provenance package**: its raw downloaded
+files live in `sources/` (committed as-is, never edited), `SOURCE.md` records where
+they came from + how they became numbers, and `build.py` is the reproducible builder.
+The basemap reads the election CSVs from `datasets/haredi-vote/sources/` for the
+city universe + size weight (documented cross-dependency).
 
 The pipeline produces data; the frontend is a pure view. Keep that boundary.
 
@@ -82,10 +97,10 @@ election-based datasets use `"k19"`, `"k20"`, etc.; year-based datasets use `"20
 
 ## Conventions
 
-- **Join key** = CBS locality code (סמל יישוב). Builders resolve raw names through
-  `common/geo_index.resolve` for geometry, then call `cbs_code_for()` to get the
-  stable numeric code used as the key in both `geo.json` and dataset files.
-  CBS codes are registered via `elections.register_cbs_codes(geo, sources_dir)`.
+- **Join key** = CBS locality code (סמל יישוב). Election CSVs carry the CBS code
+  directly; builders call `geo.lookup(cbs_code)` to get geometry. The polygon source
+  is CBS statistical areas (`localities.geojson`, 1,387 localities); `coords.csv`
+  provides point fallback for ~30 unrecognized Bedouin settlements.
 - **Projection** is planar `d3.geoIdentity` with longitude×cos(lat) correction — NOT a
   spherical projection. The source polygons have inconsistent ring winding that renders
   inside-out under Mercator. See DECISIONS.
@@ -93,7 +108,19 @@ election-based datasets use `"k19"`, `"k20"`, etc.; year-based datasets use `"20
 - **Tests:** Python logic (normalize, resolve, value math, merge) is unit-tested with
   pytest; `lib/colorScale.ts` is unit-tested; the map is verified by headless screenshot.
 
+## Adding a dataset
+
+1. `cp -r pipeline/datasets/_TEMPLATE pipeline/datasets/<id>`.
+2. Drop the raw downloaded files into `<id>/sources/` (commit them as-is).
+3. Fill in `<id>/SOURCE.md` — **especially the source links and the method**. This
+   is required, not optional: a folder of numbers with no provenance is the exact
+   thing this structure exists to prevent.
+4. Implement `<id>/build.py` to read `./sources` and emit
+   `public/data/datasets/<id>.json` keyed by CBS code, registering itself in
+   `index.json`. It appears in the picker automatically.
+
 ## Safety / workflow
 
 - Don't `git push` or deploy without explicit go-ahead.
-- Raw source files under `pipeline/sources/` may be large; keep them gitignored.
+- Each dataset's raw lives in its own `sources/` and **is committed** (provenance).
+  The only gitignored raw is the dead `pipeline/sources/` leftover.

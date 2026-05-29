@@ -50,14 +50,6 @@ def merge_shares(share_lists):
     return out
 
 
-def register_cbs_codes(geo, sources_dir):
-    """Scan all election CSVs and register CBS locality codes on the GeoIndex."""
-    for n, _ in ELECTIONS:
-        for loc in read_localities(sources_dir, n):
-            if loc["cbs_code"]:
-                key, _ = geo.resolve(loc["raw"])
-                if key:
-                    geo.register_cbs_code(key, loc["cbs_code"])
 
 
 def _to_int(v):

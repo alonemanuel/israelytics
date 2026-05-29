@@ -149,3 +149,47 @@ Decisions:
 
 Rejected: a CSS framework (Tailwind). The surface area is small; plain CSS with tokens
 keeps the dependency footprint minimal and the pure-view boundary intact.
+
+### 2026-05-29 — CBS statistical areas as polygon source (replacing municipalities.geojson)
+**What:** Replaced the ~250-feature `municipalities.geojson` (municipalities + local
+councils + regional councils) with the CBS "Statistical Areas with Demographic Data"
+geodatabase, dissolved by `SEMEL_YISHUV` to produce `localities.geojson` (1,387
+per-locality polygons). Coverage went from 190 polygons to 1,190 out of 1,212 cities.
+**Why:** The old source only had jurisdictional boundaries — municipalities and
+regional councils. Small settlements (kibbutzim, moshavim, community settlements,
+Bedouin towns) within regional councils had no polygon and were shown as dots. The CBS
+source has a polygon for every recognized locality because each is at least one
+statistical area.
+**Rejected:** Voronoi tessellation from point coordinates (synthetic, not real
+boundaries), buffer circles (still not real boundaries), keeping dots (poor UX).
+**Caveats:** The CBS source uses 2011 statistical area boundaries. ~30 unrecognized
+Bedouin settlements have no CBS polygon and fall back to point coordinates from
+coords.csv. Geometry is simplified (tolerance 0.0005°, ~50m) to keep file size
+manageable (~2.3 MB source, ~1 MB output).
+
+### 2026-05-29 — Simplified GeoIndex: CBS code as primary key
+**What:** Rewrote `geo_index.py` to look up geometry by CBS code directly via
+`lookup(cbs_code)`, instead of the old name-normalization + alias resolution path.
+**Why:** With CBS codes as the join key and CBS polygons as the geometry source, name
+matching is no longer needed for the core join. The old approach (normalize Hebrew name
+→ tight_key → alias → polygon lookup) was the most fragile part of the pipeline.
+CBS code lookup is O(1) with zero ambiguity.
+**Kept:** `normalize.py` and `coords.csv` for the point fallback (the ~30 unrecognized
+settlements that need name-based coordinate lookup).
+**Removed:** `aliases.csv` dependency for polygon matching, `register_cbs_codes()`,
+`cbs_code_for()`, `resolve()`.
+
+### 2026-05-29 — Datasets are self-contained provenance packages
+**What:** Reorganized `pipeline/` so each dataset (and the basemap) is a folder
+holding its raw downloaded files (`sources/`, committed as-is), a `SOURCE.md`
+(where the raw came from + how it became numbers + caveats), and its `build.py`.
+A `_TEMPLATE/` is the copy-to-start skeleton.
+**Why:** A folder of final numbers is hard to reverse-engineer. Keeping the raw,
+the source links, and the method beside the output makes every dataset reproducible
+and auditable a year later — the whole motivation.
+**Rejected:** A machine-readable `manifest.json` + sha256 `verify.py` — deferred as
+YAGNI. The raw files are committed to git, so git already provides versioning and
+tamper-detection; a `SOURCE.md` sources-table covers the human need. Add the manifest
+later if automated re-fetching or cross-dataset tooling actually appears.
+**Decided:** commit raw into the repo (self-contained, survives dead links);
+provenance is repo-only for now (no UI changes).

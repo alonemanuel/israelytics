@@ -2,21 +2,23 @@
 and register it in public/data/datasets/index.json.
 
 Per city per election: (Shas + UTJ) / valid votes. Spelling variants that
-resolve to the same canonical key are merged. Keys come from the shared
-GeoIndex, so they line up with geo.json.
+resolve to the same CBS code are merged. Keys are CBS locality codes, so they
+line up with geo.json. Raw inputs and provenance live alongside this file:
+see ./sources and ./SOURCE.md.
 """
 
 import json
 import os
 import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "common"))
-from elections import (ELECTIONS, read_localities, haredi_share,                # noqa: E402
-                      merge_shares, register_cbs_codes)
-from geo_index import GeoIndex                                                 # noqa: E402
+HERE = os.path.dirname(__file__)
+sys.path.insert(0, os.path.join(HERE, "..", "..", "common"))
+from elections import ELECTIONS, read_localities, haredi_share, merge_shares  # noqa: E402
+from geo_index import GeoIndex                                                # noqa: E402
 
-ROOT = os.path.join(os.path.dirname(__file__), "..")
-SOURCES = os.path.join(os.path.dirname(__file__), "sources")
+ROOT = os.path.join(HERE, "..", "..", "..")
+OWN_SOURCES = os.path.join(HERE, "sources")
+GEO_SOURCES = os.path.join(HERE, "..", "..", "basemap", "sources")
 DATASETS = os.path.join(ROOT, "public", "data", "datasets")
 
 DATASET_ID = "haredi-vote"
@@ -34,38 +36,37 @@ META = {
 
 
 def build():
-    geo = GeoIndex(SOURCES)
-    register_cbs_codes(geo, SOURCES)
+    geo = GeoIndex(GEO_SOURCES)
     n_steps = len(ELECTIONS)
 
-    # canonical_key -> list of per-election share-lists (one per spelling variant)
-    by_key = {}
+    # CBS code -> list of per-election share-lists (one per spelling variant)
+    by_cbs = {}
     national_haredi = [0] * n_steps
     national_valid = [0] * n_steps
     unmatched = {}
 
     for i, (n, _) in enumerate(ELECTIONS):
-        for loc in read_localities(SOURCES, n):
-            key, _kind = geo.resolve(loc["raw"])
+        for loc in read_localities(OWN_SOURCES, n):
+            cbs = loc["cbs_code"]
             share = haredi_share(loc["votes"], loc["valid"])
             national_haredi[i] += sum(loc["votes"].get(l, 0) for l in ("שס", "ג"))
             national_valid[i] += loc["valid"]
-            if not key:
-                unmatched[loc["raw"]] = max(unmatched.get(loc["raw"], 0), loc["valid"])
+            if not cbs:
                 continue
-            entry = by_key.setdefault(key, [])
+            kind, _, _ = geo.lookup(cbs, loc["raw"])
+            if not kind:
+                unmatched[cbs] = max(unmatched.get(cbs, 0), loc["valid"])
+                continue
+            entry = by_cbs.setdefault(cbs, [])
             shares = [None] * n_steps
             shares[i] = share
             entry.append(shares)
 
-    merged = {key: merge_shares(lists) for key, lists in by_key.items()}
+    merged = {cbs: merge_shares(lists) for cbs, lists in by_cbs.items()}
 
     timestep_ids = [f"k{n}" for n, _ in ELECTIONS]
     cities = {}
-    for key, values in merged.items():
-        cbs = geo.cbs_code_for(key)
-        if not cbs:
-            continue
+    for cbs, values in merged.items():
         obj = {}
         for j, val in enumerate(values):
             if val is not None:
