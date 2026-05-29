@@ -1,0 +1,19 @@
+# IDE
+.idea/
+.vscode/
+.DS_Store
+
+# Node / Next
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+.vercel
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Large raw data sources
+pipeline/sources/
