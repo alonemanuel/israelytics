@@ -193,3 +193,20 @@ tamper-detection; a `SOURCE.md` sources-table covers the human need. Add the man
 later if automated re-fetching or cross-dataset tooling actually appears.
 **Decided:** commit raw into the repo (self-contained, survives dead links);
 provenance is repo-only for now (no UI changes).
+
+### 2026-05-29 — Extend Haredi dataset back to 2006/2009 from ballot-box sources
+**What:** Added the 17th (2006) and 18th (2009) Knessets to `haredi-vote`, so the
+timeline is now 17–25 (nine elections). Their only available sources are
+**per-ballot-box** (17th = a legacy `.xls`; 18th = a CSV), so the builder
+aggregates ballot boxes up to the locality before computing the share.
+**Why:** More history makes the "how the Haredi vote changed" story far stronger,
+and the data exists.
+**How:** The 18th carries a CBS code, so it groups by code directly. The 17th has
+only city names, so codes are backfilled via `build_name_to_cbs` (the name↔code
+pairs in the 19–25 per-locality files). ~96 of ~1,210 2006 localities don't resolve
+(tiny/renamed places) and are omitted; reported, not silent.
+**Validation:** National Haredi share computes to 14.5% (2006) and 13.0% (2009),
+matching published Shas+UTJ results; per-city spot checks (Bnei Brak 0.80→0.90,
+Modiin Illit ~0.97, Tel Aviv 0.09→0.05) are correct.
+**Note:** Adds an `xlrd` dependency (only path that reads legacy `.xls`); recorded
+in `pipeline/requirements.txt`.

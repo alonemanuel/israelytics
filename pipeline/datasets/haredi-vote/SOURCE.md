@@ -8,23 +8,30 @@
 
 For each Israeli locality, the share of valid votes that went to the two Haredi
 (ultra-orthodox) parties — **Shas (ש"ס)** and **United Torah Judaism / Yahadut
-HaTorah (ג)** — in each Knesset election from the 19th (2013) to the 25th (2022).
+HaTorah (ג)** — in each Knesset election from the **17th (2006) to the 25th (2022)**.
 
 ## Sources
 
-The raw files in `./sources/` are the official per-locality ("לפי יישובים")
-result tables published by the Israeli **Central Elections Committee**, one CSV
-per election, named by Knesset number.
+The raw files in `./sources/` are official result tables from the Israeli
+**Central Elections Committee**. Two granularities are mixed:
 
-| File | Election | Date | Source |
-|------|----------|------|--------|
-| `sources/19.csv` | 19th Knesset | Jan 2013 | Central Elections Committee — per-locality results |
-| `sources/20.csv` | 20th Knesset | Mar 2015 | " |
-| `sources/21.csv` | 21st Knesset | Apr 2019 | " |
-| `sources/22.csv` | 22nd Knesset | Sep 2019 | " |
-| `sources/23.csv` | 23rd Knesset | Mar 2020 | " |
-| `sources/24.csv` | 24th Knesset | Mar 2021 | " |
-| `sources/25.csv` | 25th Knesset | Nov 2022 | " |
+- **19th–25th**: per-locality ("לפי יישובים") CSVs, one per election, with a CBS
+  code column.
+- **17th & 18th**: per-**ballot-box** files (no per-locality export was available),
+  aggregated up to the locality by the builder. The 18th carries a CBS code; the
+  17th has only city names, so its codes are backfilled (see Method).
+
+| File | Election | Date | Granularity | Source |
+|------|----------|------|-------------|--------|
+| `sources/17-kalpiot.xls` | 17th Knesset | 2006 | ballot-box (.xls) | Central Elections Committee |
+| `sources/18-kalpiot.csv` | 18th Knesset | 2009 | ballot-box (CSV) | " |
+| `sources/19.csv` | 19th Knesset | Jan 2013 | per-locality | " |
+| `sources/20.csv` | 20th Knesset | Mar 2015 | per-locality | " |
+| `sources/21.csv` | 21st Knesset | Apr 2019 | per-locality | " |
+| `sources/22.csv` | 22nd Knesset | Sep 2019 | per-locality | " |
+| `sources/23.csv` | 23rd Knesset | Mar 2020 | per-locality | " |
+| `sources/24.csv` | 24th Knesset | Mar 2021 | per-locality | " |
+| `sources/25.csv` | 25th Knesset | Nov 2022 | per-locality | " |
 
 > **Fill in the exact download URLs and the date you downloaded them.** The
 > committee publishes each election under its own site (e.g. `votes25.bechirot.gov.il`).
@@ -40,11 +47,18 @@ per election, named by Knesset number.
    The set is defined in `elections.HAREDI_LETTERS` — edit there to change it.
 3. **Compute the share** = Haredi votes ÷ `כשרים` (valid votes) for that locality.
    Localities with zero valid votes yield no value (rendered as "no data").
-4. **Key by CBS locality code** (`סמל יישוב`) so the values join to `geo.json`.
+4. **Aggregate ballot-box sources (17th, 18th)** up to the locality before the
+   share is computed: sum each party and the valid count over all ballot boxes of
+   a locality. The 18th groups by its CBS code column directly; the 17th groups by
+   normalized city name, then resolves that name to a CBS code via the name↔code
+   pairs learned from the 19th–25th files (`elections.build_name_to_cbs`). 2006
+   localities whose name doesn't resolve to a code are reported and omitted
+   (~96 of ~1,210, mostly tiny/renamed places).
+5. **Key by CBS locality code** (`סמל יישוב`) so the values join to `geo.json`.
    Spelling variants of the same code across elections are merged
    (`elections.merge_shares`).
-5. **Skip aggregates** like `מעטפות חיצוניות` ("external envelopes" — absentee /
-   military votes, not a place).
+6. **Skip aggregates** like `מעטפות חיצוניות` / `מעטפות כפולות` ("external/double
+   envelopes" — absentee / military votes, not a place).
 
 ## Caveats
 

@@ -45,7 +45,7 @@ pipeline/            Python: raw sources -> standard JSON (never knows about ren
   datasets/              one self-contained provenance package per dataset
     _TEMPLATE/           copy to start a new dataset (SOURCE.md, build.py, sources/)
     haredi-vote/
-      sources/           raw downloaded files (election CSVs 19-25), committed
+      sources/           raw election files 17-25 (per-locality CSVs + 17/18 ballot-box), committed
       SOURCE.md          source links + method + caveats
       build.py           -> public/data/datasets/haredi-vote.json (+ registers it)
 app/                 Next.js App Router (TypeScript)

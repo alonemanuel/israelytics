@@ -8,7 +8,7 @@ is shared, and each dataset is just a data file. Adding a new dataset means drop
 a JSON file — no code changes.
 
 **Status:** working POC. The first dataset is **Haredi (ultra-orthodox) vote share
-per city across Knesset elections 19–25 (2013–2022)**. More datasets (population,
+per city across Knesset elections 17–25 (2006–2022)**. More datasets (population,
 turnout, income, …) can be added later.
 
 ## How it works (the short version)
