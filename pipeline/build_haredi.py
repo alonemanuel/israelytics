@@ -11,7 +11,8 @@ import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "common"))
-from elections import ELECTIONS, read_localities, haredi_share, merge_shares  # noqa: E402
+from elections import (ELECTIONS, read_localities, haredi_share,                # noqa: E402
+                      merge_shares, register_cbs_codes)
 from geo_index import GeoIndex                                                 # noqa: E402
 
 ROOT = os.path.join(os.path.dirname(__file__), "..")
@@ -28,12 +29,13 @@ META = {
     "unit": "percent",
     "colorScale": {"type": "sequential", "scheme": "Purples", "domain": [0, 1],
                    "power": 0.55},
-    "timesteps": [{"id": n, "label": f"בחירות {n}", "sub": d} for n, d in ELECTIONS],
+    "timesteps": [{"id": f"k{n}", "label": f"הכנסת ה-{n}", "sub": d} for n, d in ELECTIONS],
 }
 
 
 def build():
     geo = GeoIndex(SOURCES)
+    register_cbs_codes(geo, SOURCES)
     n_steps = len(ELECTIONS)
 
     # canonical_key -> list of per-election share-lists (one per spelling variant)
@@ -56,7 +58,20 @@ def build():
             shares[i] = share
             entry.append(shares)
 
-    cities = {key: merge_shares(lists) for key, lists in by_key.items()}
+    merged = {key: merge_shares(lists) for key, lists in by_key.items()}
+
+    timestep_ids = [f"k{n}" for n, _ in ELECTIONS]
+    cities = {}
+    for key, values in merged.items():
+        cbs = geo.cbs_code_for(key)
+        if not cbs:
+            continue
+        obj = {}
+        for j, val in enumerate(values):
+            if val is not None:
+                obj[timestep_ids[j]] = val
+        if obj:
+            cities[cbs] = obj
 
     os.makedirs(DATASETS, exist_ok=True)
     dataset = dict(META, cities=cities)

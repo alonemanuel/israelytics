@@ -13,7 +13,8 @@ The defining idea: **separate the base map from the data.**
   once, shared by every dataset.
 - Each **dataset** (`public/data/datasets/<id>.json`) is values per city per time-step,
   plus its own color spec.
-- The frontend **joins them by a canonical city key** (normalized Hebrew city name).
+- The frontend **joins them by CBS locality code** (סמל יישוב — a stable numeric
+  identifier from the Israeli Central Bureau of Statistics).
 
 This is what makes the platform extensible: a new dataset is a new JSON file, not new code.
 
@@ -35,7 +36,7 @@ This repo keeps three docs in sync with reality. **When you change the project, 
 ```
 pipeline/            Python: raw sources -> standard JSON (never knows about rendering)
   common/normalize.py    canonical city-name normalization
-  common/geo_index.py    resolve(name) -> (canonical_key, kind)  [single source of join key]
+  common/geo_index.py    resolve(name) -> (canonical_key, kind) + CBS code mapping
   build_geo.py           polygons + coords -> public/data/geo.json
   build_haredi.py        election CSVs   -> public/data/datasets/haredi-vote.json
 app/                 Next.js App Router (TypeScript)
@@ -49,11 +50,11 @@ The pipeline produces data; the frontend is a pure view. Keep that boundary.
 
 ## Data-format contract
 
-**`geo.json`** — keyed by canonical city key:
+**`geo.json`** — keyed by CBS locality code:
 ```jsonc
 { "cities": {
-  "בני ברק":   { "nameHe":"בני ברק", "kind":"polygon", "geometry":{...GeoJSON...}, "weight":95000 },
-  "כפר ורדים": { "nameHe":"כפר ורדים", "kind":"point", "lat":32.9, "lon":35.2, "weight":4200 }
+  "3000": { "nameHe":"בני ברק", "kind":"polygon", "geometry":{...GeoJSON...}, "weight":95000 },
+  "1295": { "nameHe":"כפר ורדים", "kind":"point", "lat":32.9, "lon":35.2, "weight":4200 }
 }}
 ```
 `weight` ≈ city electorate size; drives dot radius and is dataset-independent.
@@ -66,10 +67,14 @@ The pipeline produces data; the frontend is a pure view. Keep that boundary.
   "descriptionHe": "...",
   "unit": "percent",
   "colorScale": { "type":"sequential", "scheme":"Purples", "domain":[0,1], "power":0.55 },
-  "timesteps": [ {"id":19,"label":"בחירות 19","sub":"Jan 2013"} /* ... */ ],
-  "cities": { "בני ברק": [0.85,0.83 /* aligned to timesteps; null = no data */ ] }
+  "timesteps": [ {"id":"k19","label":"הכנסת ה-19","sub":"Jan 2013"} /* ... */ ],
+  "cities": { "3000": {"k19":0.85, "k20":0.83} }
 }
 ```
+Each dataset defines its own timeline. Timestep IDs are dataset-specific strings —
+election-based datasets use `"k19"`, `"k20"`, etc.; year-based datasets use `"2020"`,
+`"2021"`, etc. City values are objects keyed by timestep ID (missing key = no data).
+
 `colorScale` is generic (`sequential`|`diverging`, a d3 scheme, domain, optional
 `power`/`midpoint`) so new datasets render without frontend changes.
 
@@ -77,8 +82,10 @@ The pipeline produces data; the frontend is a pure view. Keep that boundary.
 
 ## Conventions
 
-- **Join key** = normalized Hebrew city name. Both `build_geo` and every dataset builder
-  resolve names through `common/geo_index.resolve` so keys always line up.
+- **Join key** = CBS locality code (סמל יישוב). Builders resolve raw names through
+  `common/geo_index.resolve` for geometry, then call `cbs_code_for()` to get the
+  stable numeric code used as the key in both `geo.json` and dataset files.
+  CBS codes are registered via `elections.register_cbs_codes(geo, sources_dir)`.
 - **Projection** is planar `d3.geoIdentity` with longitude×cos(lat) correction — NOT a
   spherical projection. The source polygons have inconsistent ring winding that renders
   inside-out under Mercator. See DECISIONS.

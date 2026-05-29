@@ -38,3 +38,19 @@ def test_geometry_available_for_resolved_polygon():
     key, kind = idx.resolve("ירושלים")
     geom = idx.geometry_for(key, kind)
     assert geom["type"] in ("Polygon", "MultiPolygon")
+
+
+def test_cbs_code_registration_and_lookup():
+    idx = _idx()
+    key, _ = idx.resolve("בני ברק")
+    assert idx.cbs_code_for(key) is None
+    idx.register_cbs_code(key, "3000")
+    assert idx.cbs_code_for(key) == "3000"
+
+
+def test_cbs_code_first_registration_wins():
+    idx = _idx()
+    key, _ = idx.resolve("בני ברק")
+    idx.register_cbs_code(key, "3000")
+    idx.register_cbs_code(key, "9999")
+    assert idx.cbs_code_for(key) == "3000"

@@ -12,8 +12,8 @@ import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "common"))
-from elections import ELECTIONS, read_localities          # noqa: E402
-from geo_index import GeoIndex                              # noqa: E402
+from elections import ELECTIONS, read_localities, register_cbs_codes  # noqa: E402
+from geo_index import GeoIndex                                         # noqa: E402
 
 ROOT = os.path.join(os.path.dirname(__file__), "..")
 SOURCES = os.path.join(os.path.dirname(__file__), "sources")
@@ -22,8 +22,9 @@ OUT = os.path.join(ROOT, "public", "data", "geo.json")
 
 def build():
     geo = GeoIndex(SOURCES)
+    register_cbs_codes(geo, SOURCES)
 
-    cities = {}            # canonical_key -> city record
+    cities = {}            # CBS code -> city record
     unmatched = {}         # raw name -> max eligible (for the report)
     for n, _ in ELECTIONS:
         for loc in read_localities(SOURCES, n):
@@ -32,7 +33,10 @@ def build():
                 unmatched[loc["raw"]] = max(unmatched.get(loc["raw"], 0),
                                             loc["eligible"])
                 continue
-            rec = cities.get(key)
+            cbs = geo.cbs_code_for(key)
+            if not cbs:
+                continue
+            rec = cities.get(cbs)
             if rec is None:
                 rec = {"nameHe": geo.name_for(key, kind), "kind": kind,
                        "weight": 0}
@@ -41,7 +45,7 @@ def build():
                     rec["geometry"] = geom
                 else:
                     rec["lat"], rec["lon"] = geom["lat"], geom["lon"]
-                cities[key] = rec
+                cities[cbs] = rec
             rec["weight"] = max(rec["weight"], loc["eligible"])
 
     os.makedirs(os.path.dirname(OUT), exist_ok=True)

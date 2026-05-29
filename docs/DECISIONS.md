@@ -93,3 +93,34 @@ small registry, supporting sequential (with optional `power`) and diverging (wit
 **Why:** New datasets pick a color treatment by name in their JSON; no frontend changes.
 **Rejected:** Importing all of d3-scale-chromatic dynamically (unnecessary; a curated
 registry is clearer and smaller).
+
+### 2026-05-29 — Join key: CBS locality code (סמל יישוב), not Hebrew name
+**What:** Switch the city join key from normalized Hebrew names to CBS locality codes —
+stable numeric identifiers from the Israeli Central Bureau of Statistics.
+**Why:** Hebrew names are fragile: encoding issues, normalization edge cases (dashes,
+geresh, parentheticals), renaming (נצרת עילית → נוף הגליל). CBS codes are
+language-independent, unambiguous, and stable across data sources.
+**Rejected (previously):** Normalized Hebrew name — was the original choice for
+human-readability, but fragility outweighed that benefit. Hebrew names are kept as
+display labels (`nameHe` in geo.json).
+**Migration:** `geo_index.py` still resolves names internally; builders call
+`register_cbs_codes()` then `cbs_code_for()` to get the CBS code for output.
+
+### 2026-05-29 — Object-keyed timesteps, not positional arrays
+**What:** City values in datasets changed from positional arrays aligned to the timesteps
+list (`[0.85, 0.83, null]`) to objects keyed by timestep ID (`{"k19": 0.85, "k20": 0.83}`).
+**Why:** Positional arrays are fragile — one off-by-one and every value shifts silently.
+Objects are self-documenting, sparse-safe (missing key = no data, no nulls needed), and
+support datasets with irregular timelines (elections happen at uneven intervals).
+**Rejected:** Positional arrays — more compact, but the ~250 cities × <30 timesteps
+means the size difference is negligible. Safety and debuggability win.
+
+### 2026-05-29 — Each dataset defines its own timeline
+**What:** Timestep IDs are dataset-specific strings, not a global time axis. Election
+datasets use `"k19"`, `"k20"`, etc. Year-based datasets use `"2020"`, `"2021"`, etc.
+**Why:** Different data sources have fundamentally different time axes — elections are
+irregular (sometimes 1 year apart, sometimes 4), while population data is annual. A
+single shared timeline would force awkward alignment. The slider just steps through
+whatever timesteps the dataset declares, so the frontend doesn't care.
+**Rejected:** A single global year axis — would require interpolation or many nulls for
+irregular data like elections.

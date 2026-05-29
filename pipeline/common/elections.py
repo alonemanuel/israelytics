@@ -50,6 +50,16 @@ def merge_shares(share_lists):
     return out
 
 
+def register_cbs_codes(geo, sources_dir):
+    """Scan all election CSVs and register CBS locality codes on the GeoIndex."""
+    for n, _ in ELECTIONS:
+        for loc in read_localities(sources_dir, n):
+            if loc["cbs_code"]:
+                key, _ = geo.resolve(loc["raw"])
+                if key:
+                    geo.register_cbs_code(key, loc["cbs_code"])
+
+
 def _to_int(v):
     try:
         return int(v)
@@ -83,6 +93,7 @@ def read_localities(sources_dir, election):
     rows = _read_rows(sources_dir, election)
     keys = list(rows[0].keys())
     name_key = _col(keys, "שם", "ישוב")
+    code_key = _col(keys, "סמל", "ישוב")
     voters_key = _col(keys, "מצביעים")
     valid_key = _col(keys, "כשרים")
     eligible_key = _col(keys, "בזב")
@@ -102,6 +113,7 @@ def read_localities(sources_dir, election):
         valid = _to_int(r[valid_key]) if valid_key else sum(votes.values())
         yield {
             "raw": raw,
+            "cbs_code": (r[code_key] or "").strip() if code_key else "",
             "votes": votes,
             "valid": valid,
             "voters": _to_int(r[voters_key]) if voters_key else 0,

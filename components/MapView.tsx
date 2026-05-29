@@ -120,8 +120,9 @@ export default function MapView({
   useEffect(() => {
     const svg = d3.select(svgRef.current);
     const color = dataset ? makeColor(dataset.colorScale) : () => "#555";
+    const tsId = dataset?.timesteps[step]?.id;
     const valueOf = (key: string): number | null =>
-      dataset?.cities[key]?.[step] ?? null;
+      tsId != null ? (dataset?.cities[key]?.[tsId] ?? null) : null;
     const fmt = (v: number | null) =>
       v == null ? "אין נתונים" : Math.round(v * 100) + "%";
 

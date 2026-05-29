@@ -4,9 +4,14 @@ Loads the polygon and coordinate geometry sources and resolves any Israeli
 locality name to a canonical key + geometry. Every dataset builder resolves
 names through here, so dataset city keys always line up with geo.json keys.
 
-A polygon city's canonical key is the normalized MUN_HEB name; a point city's
-canonical key is its tight_key (which collapses spelling variants). Aliases
-(an editable CSV) rewrite known renames/spellings before matching.
+The output join key is the CBS locality code (סמל יישוב) — a stable numeric
+identifier assigned by the Israeli Central Bureau of Statistics. Builders call
+register_cbs_codes() (from elections.py) to populate the mapping, then use
+cbs_code_for() to translate internal canonical keys to CBS codes for output.
+
+Internally, a polygon city's canonical key is the normalized MUN_HEB name; a
+point city's canonical key is its tight_key (which collapses spelling variants).
+Aliases (an editable CSV) rewrite known renames/spellings before matching.
 """
 
 import csv
@@ -31,6 +36,7 @@ class GeoIndex:
         self._load_aliases(sources_dir)
         self._load_polygons(sources_dir)
         self._load_coords(sources_dir)
+        self._cbs = {}  # canonical_key -> CBS code string
 
     def _load_aliases(self, sources_dir):
         path = os.path.join(sources_dir, "aliases.csv")
@@ -89,6 +95,14 @@ class GeoIndex:
         if tkey in self.coord_tight:
             return tkey, "point"
         return None, None
+
+    def register_cbs_code(self, canonical_key, cbs_code):
+        """Associate a CBS locality code with a canonical key."""
+        self._cbs.setdefault(canonical_key, str(cbs_code))
+
+    def cbs_code_for(self, canonical_key):
+        """Return the CBS code for a canonical key, or None."""
+        return self._cbs.get(canonical_key)
 
     def name_for(self, canonical_key, kind):
         if kind == "polygon":

@@ -33,7 +33,7 @@ export interface ColorSpec {
 }
 
 export interface Timestep {
-  id: number;
+  id: string;
   label: string;
   sub?: string;
 }
@@ -47,7 +47,7 @@ export interface Dataset {
   unit: string;
   colorScale: ColorSpec;
   timesteps: Timestep[];
-  cities: Record<string, (number | null)[]>; // values aligned to timesteps
+  cities: Record<string, Record<string, number>>; // CBS code -> {timestep_id -> value}
 }
 
 export interface DatasetSummary {
