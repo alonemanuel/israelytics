@@ -34,6 +34,7 @@ export default function MapView({
   const svgRef = useRef<SVGSVGElement | null>(null);
   const tipRef = useRef<HTMLDivElement | null>(null);
   const projRef = useRef<d3.GeoProjection | null>(null);
+  const pinnedRef = useRef(false); // tooltip pinned by tap (touch)
 
   // Split the base map into polygon features and point dots (depends on geo only).
   const { features, dots } = useMemo(() => {
@@ -82,28 +83,15 @@ export default function MapView({
     projection.fitExtent([[20, 20], [VB - 20, VB - 20]], { type: "FeatureCollection", features: fitFeats });
     const projPoint = (lon: number, lat: number) => projection([lon * KX, lat])!;
 
-    const tip = d3.select(tipRef.current);
-    const showTip = (html: string, ev: any) => {
-      const host = svgRef.current!.parentElement!.getBoundingClientRect();
-      tip.html(html).style("opacity", "1")
-        .style("left", ev.clientX - host.left + 14 + "px")
-        .style("top", ev.clientY - host.top + 14 + "px");
-    };
-    const hideTip = () => tip.style("opacity", "0");
-
     gRegions.selectAll("path").data(features).join("path")
       .attr("class", "region").attr("d", (d) => path(d as any))
-      .attr("data-key", (d) => d.properties.key)
-      .on("mousemove", (ev, d) => showTip(`<b>${d.properties.name}</b><br><span class="v"></span>`, ev))
-      .on("mouseleave", hideTip);
+      .attr("data-key", (d) => d.properties.key);
 
     gDots.selectAll("circle").data(dots).join("circle")
       .attr("class", "dot").attr("data-key", (d) => d.key)
       .attr("cx", (d) => projPoint(d.lon, d.lat)[0])
       .attr("cy", (d) => projPoint(d.lon, d.lat)[1])
-      .attr("r", (d) => dotR(d.weight))
-      .on("mousemove", (ev, d) => showTip(`<b>${d.name}</b><br><span class="v"></span>`, ev))
-      .on("mouseleave", hideTip);
+      .attr("r", (d) => dotR(d.weight));
 
     const zoom = d3.zoom<SVGSVGElement, unknown>()
       .scaleExtent([1, 60]).translateExtent([[0, 0], [VB, VB]])
@@ -116,43 +104,80 @@ export default function MapView({
     (node as any).__zoom_by = (f: number) => svg.transition().duration(250).call(zoom.scaleBy, f);
   }, [features, dots, dotR]);
 
-  // Recolor + retooltip whenever dataset or timestep changes.
+  // Recolor + (re)bind interactions whenever dataset or timestep changes.
   useEffect(() => {
-    const svg = d3.select(svgRef.current);
-    const color = dataset ? makeColor(dataset.colorScale) : () => "#555";
+    const node = svgRef.current;
+    if (!node) return;
+    const svg = d3.select(node);
+    const color = dataset ? makeColor(dataset.colorScale) : () => "#94a0b3";
     const tsId = dataset?.timesteps[step]?.id;
     const valueOf = (key: string): number | null =>
       tsId != null ? (dataset?.cities[key]?.[tsId] ?? null) : null;
     const fmt = (v: number | null) =>
-      v == null ? "אין נתונים" : Math.round(v * 100) + "%";
+      v == null
+        ? "אין נתונים"
+        : dataset?.unit === "percent"
+        ? Math.round(v * 100) + "%"
+        : String(v);
 
     svg.selectAll<SVGPathElement, Feature>("path.region")
       .attr("fill", (d) => color(valueOf(d.properties.key)));
     svg.selectAll<SVGCircleElement, Dot>("circle.dot")
       .attr("fill", (d) => color(valueOf(d.key)))
-      .attr("opacity", (d) => (valueOf(d.key) == null ? 0.35 : 0.95));
+      .attr("opacity", (d) => (valueOf(d.key) == null ? 0.4 : 0.95));
 
-    // tooltip value injection (re-bind handlers so they read current step)
     const tip = d3.select(tipRef.current);
-    const host = () => svgRef.current!.parentElement!.getBoundingClientRect();
+    const host = () => node.parentElement!.getBoundingClientRect();
+    const place = (ev: any) => {
+      const r = host();
+      const x = ev.clientX - r.left;
+      const y = ev.clientY - r.top;
+      // flip away from edges so the tip stays on-screen
+      const flipX = x > r.width - 180;
+      tip.style("left", (flipX ? x - 14 : x + 14) + "px")
+        .style("top", y + 14 + "px")
+        .style("transform", flipX ? "translateX(-100%)" : "");
+    };
+    const showFor = (name: string, key: string, ev: any) => {
+      tip.html(`<b>${name}</b><br><span class="val">${fmt(valueOf(key))}</span>`).classed("show", true);
+      place(ev);
+    };
+
     const bind = (sel: any, nameOf: (d: any) => string, keyOf: (d: any) => string) =>
-      sel.on("mousemove", (ev: any, d: any) => {
-        const r = host();
-        tip.html(`<b>${nameOf(d)}</b><br>${fmt(valueOf(keyOf(d)))}`).style("opacity", "1")
-          .style("left", ev.clientX - r.left + 14 + "px")
-          .style("top", ev.clientY - r.top + 14 + "px");
-      });
+      sel
+        .on("mousemove", (ev: any, d: any) => {
+          if (!pinnedRef.current) showFor(nameOf(d), keyOf(d), ev);
+        })
+        .on("mouseleave", () => {
+          if (!pinnedRef.current) tip.classed("show", false);
+        })
+        .on("click", (ev: any, d: any) => {
+          ev.stopPropagation();
+          svg.selectAll(".sel").classed("sel", false);
+          d3.select(ev.currentTarget).classed("sel", true);
+          pinnedRef.current = true;
+          showFor(nameOf(d), keyOf(d), ev);
+        });
+
     bind(svg.selectAll("path.region"), (d: Feature) => d.properties.name, (d: Feature) => d.properties.key);
     bind(svg.selectAll("circle.dot"), (d: Dot) => d.name, (d: Dot) => d.key);
+
+    // tap/click empty map clears the pinned selection
+    svg.on("click.clear", () => {
+      pinnedRef.current = false;
+      tip.classed("show", false);
+      svg.selectAll(".sel").classed("sel", false);
+    });
   }, [dataset, step]);
 
   return (
     <div className="stage">
       <svg ref={svgRef} viewBox={`0 0 ${VB} ${VB}`} preserveAspectRatio="xMidYMid meet" />
-      <div className="zoomctl">
-        <button onClick={() => (svgRef.current as any)?.__zoom_by?.(1.8)} title="התקרבות">+</button>
-        <button onClick={() => (svgRef.current as any)?.__zoom_by?.(1 / 1.8)} title="התרחקות">−</button>
-        <button onClick={() => (svgRef.current as any)?.__zoom_reset?.()} title="איפוס">⤢</button>
+      <div className="zoomctl glass">
+        <button onClick={() => (svgRef.current as any)?.__zoom_by?.(1.8)} title="התקרבות" aria-label="התקרבות">+</button>
+        <button onClick={() => (svgRef.current as any)?.__zoom_by?.(1 / 1.8)} title="התרחקות" aria-label="התרחקות">−</button>
+        <div className="sep" />
+        <button onClick={() => (svgRef.current as any)?.__zoom_reset?.()} title="איפוס תצוגה" aria-label="איפוס תצוגה">⤢</button>
       </div>
       <div ref={tipRef} className="tooltip" />
     </div>

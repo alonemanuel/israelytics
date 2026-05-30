@@ -12,15 +12,18 @@ export default function DatasetPicker({
   onSelect: (id: string) => void;
 }) {
   return (
-    <label className="picker">
-      <span>נתון:</span>
-      <select value={selectedId ?? ""} onChange={(e) => onSelect(e.target.value)}>
+    <div className="picker">
+      <select
+        aria-label="בחירת נתון"
+        value={selectedId ?? ""}
+        onChange={(e) => onSelect(e.target.value)}
+      >
         {index.map((d) => (
           <option key={d.id} value={d.id}>
             {d.titleHe}
           </option>
         ))}
       </select>
-    </label>
+    </div>
   );
 }

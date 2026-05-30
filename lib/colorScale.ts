@@ -1,7 +1,7 @@
 import * as d3 from "d3";
 import type { ColorSpec } from "./types";
 
-export const NO_DATA_COLOR = "#555";
+export const NO_DATA_COLOR = "#94a0b3";
 
 // d3 scheme name -> interpolator. Extend as new datasets need new schemes.
 const INTERPOLATORS: Record<string, (t: number) => string> = {

@@ -24,10 +24,32 @@ export default function Home() {
 
   return (
     <main dir="rtl">
-      <header>
-        <div className="titles">
-          <h1>Israelytics</h1>
-          {dataset?.descriptionHe && <p>{dataset.descriptionHe}</p>}
+      {geo ? (
+        <MapView geo={geo} dataset={dataset} step={step} />
+      ) : (
+        !error && (
+          <div className="center-msg">
+            <div className="card glass">
+              <div className="spinner" />
+              טוען מפה…
+            </div>
+          </div>
+        )
+      )}
+
+      {error && (
+        <div className="center-msg error">
+          <div className="card glass">שגיאה בטעינת הנתונים: {error}</div>
+        </div>
+      )}
+
+      <header className="topbar glass">
+        <div className="brand">
+          <div className="mark">י</div>
+          <div className="titles">
+            <h1>Israelytics</h1>
+            {dataset?.descriptionHe && <p>{dataset.descriptionHe}</p>}
+          </div>
         </div>
         {index.length > 0 && (
           <DatasetPicker index={index} selectedId={selectedId} onSelect={setSelectedId} />
@@ -35,21 +57,10 @@ export default function Home() {
       </header>
 
       {dataset && (
-        <div className="controls">
-          <Timeline timesteps={dataset.timesteps} step={step} onStep={setStep} />
-        </div>
+        <Timeline timesteps={dataset.timesteps} step={step} onStep={setStep} />
       )}
 
-      {error && <div className="error">שגיאה בטעינת הנתונים: {error}</div>}
-
-      {geo ? (
-        <>
-          <MapView geo={geo} dataset={dataset} step={step} />
-          {dataset && <Legend dataset={dataset} />}
-        </>
-      ) : (
-        !error && <div className="loading">טוען מפה…</div>
-      )}
+      {geo && dataset && <Legend dataset={dataset} />}
     </main>
   );
 }
