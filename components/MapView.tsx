@@ -35,6 +35,7 @@ export default function MapView({
   const tipRef = useRef<HTMLDivElement | null>(null);
   const projRef = useRef<d3.GeoProjection | null>(null);
   const pinnedRef = useRef(false); // tooltip pinned by tap (touch)
+  const selectedRef = useRef<{ name: string; key: string } | null>(null); // currently pinned city
 
   // Split the base map into polygon features and point dots (depends on geo only).
   const { features, dots } = useMemo(() => {
@@ -138,10 +139,17 @@ export default function MapView({
         .style("top", y + 14 + "px")
         .style("transform", flipX ? "translateX(-100%)" : "");
     };
-    const showFor = (name: string, key: string, ev: any) => {
+    const render = (name: string, key: string) =>
       tip.html(`<b>${name}</b><br><span class="val">${fmt(valueOf(key))}</span>`).classed("show", true);
+    const showFor = (name: string, key: string, ev: any) => {
+      render(name, key);
       place(ev);
     };
+
+    // keep a pinned tooltip's value current when the timestep/dataset changes
+    if (pinnedRef.current && selectedRef.current) {
+      render(selectedRef.current.name, selectedRef.current.key);
+    }
 
     const bind = (sel: any, nameOf: (d: any) => string, keyOf: (d: any) => string) =>
       sel
@@ -156,6 +164,7 @@ export default function MapView({
           svg.selectAll(".sel").classed("sel", false);
           d3.select(ev.currentTarget).classed("sel", true);
           pinnedRef.current = true;
+          selectedRef.current = { name: nameOf(d), key: keyOf(d) };
           showFor(nameOf(d), keyOf(d), ev);
         });
 
@@ -165,6 +174,7 @@ export default function MapView({
     // tap/click empty map clears the pinned selection
     svg.on("click.clear", () => {
       pinnedRef.current = false;
+      selectedRef.current = null;
       tip.classed("show", false);
       svg.selectAll(".sel").classed("sel", false);
     });
