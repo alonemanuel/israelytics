@@ -19,7 +19,7 @@ export default function Legend({ dataset }: { dataset: Dataset }) {
     dataset.unit === "percent" ? `${Math.round(v * 100)}%` : `${v}`;
 
   return (
-    <div className="legend">
+    <div className="legend glass">
       <div className="ltitle">{dataset.titleHe}</div>
       <div className="bar" style={{ background: gradient }} />
       <div className="ends">

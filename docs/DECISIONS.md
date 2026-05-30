@@ -124,3 +124,28 @@ single shared timeline would force awkward alignment. The slider just steps thro
 whatever timesteps the dataset declares, so the frontend doesn't care.
 **Rejected:** A single global year axis — would require interpolation or many nulls for
 irregular data like elections.
+
+## D-009 — UI redesign: full-bleed map, vertical timeline, auto light/dark
+
+The map is now the canvas: it fills the viewport and the controls (top bar, dataset
+picker, timeline, legend, zoom) float over it as translucent "glass" cards. This is a
+mobile-first, map-app layout rather than a stacked dashboard.
+
+Decisions:
+- **Vertical timeline** docked to the (RTL) right edge, custom-built (not a native
+  `<input type=range>`): newest timestep on top, large touch thumb, per-timestep ticks,
+  a floating label, plus drag / tap-tick / arrow-key control. A native vertical range is
+  inconsistent across browsers and has a tiny touch target.
+- **Auto light/dark** via `prefers-color-scheme` and CSS custom properties (design
+  tokens), so the app respects the device setting. `viewport.themeColor` follows suit.
+- **Accent = Israeli blue**, kept distinct from the per-dataset map color schemes so UI
+  chrome never competes with the data.
+- **Heebo** webfont via `next/font` (self-hosted, no layout shift) for a branded Hebrew +
+  Latin face instead of system fonts.
+- **Tap-to-inspect**: tapping a city pins its tooltip and highlights it, since hover does
+  not exist on touch. Tapping empty map clears it.
+
+`NO_DATA_COLOR` moved from `#555` to a mid-slate (`#94a0b3`) that reads on both themes.
+
+Rejected: a CSS framework (Tailwind). The surface area is small; plain CSS with tokens
+keeps the dependency footprint minimal and the pure-view boundary intact.
