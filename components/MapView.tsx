@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import * as d3 from "d3";
-import type { BorderGeometry, Dataset, GeoData, PolygonCity, Part } from "@/lib/types";
+import type { BorderGeometry, Dataset, GeoData, PolygonCity, Part, WaterData } from "@/lib/types";
 import { cellValue, cellParts } from "@/lib/types";
 import { makeColor } from "@/lib/colorScale";
 
@@ -32,11 +32,13 @@ interface Dot {
 export default function MapView({
   geo,
   border,
+  water,
   dataset,
   step,
 }: {
   geo: GeoData;
   border: BorderGeometry | null;
+  water: WaterData;
   dataset: Dataset | null;
   step: number;
 }) {
@@ -79,6 +81,7 @@ export default function MapView({
     gZoomRef.current = gZoom.node();
     const gLand = gZoom.append("g").attr("class", "land");
     const gRegions = gZoom.append("g");
+    const gWater = gZoom.append("g").attr("class", "water");
     const gDots = gZoom.append("g");
 
     const aspect = d3.geoTransform({
@@ -98,6 +101,8 @@ export default function MapView({
     dots.forEach((d) => fitFeats.push({ type: "Feature", geometry: { type: "Point", coordinates: [d.lon * KX, d.lat] } }));
     // fit to the border too (it contains every city, so it's the true extent)
     if (border) fitFeats.push({ type: "Feature", geometry: scaleGeom(border as PolygonCity["geometry"]) });
+    // and to the water (the Dead Sea reaches a touch past the eastern border)
+    water.forEach((w) => fitFeats.push({ type: "Feature", geometry: scaleGeom(w.geometry as PolygonCity["geometry"]) }));
     projection.fitExtent([[20, 20], [VB - 20, VB - 20]], { type: "FeatureCollection", features: fitFeats });
     const projPoint = (lon: number, lat: number) => projection([lon * KX, lat])!;
 
@@ -112,6 +117,12 @@ export default function MapView({
     gRegions.selectAll("path").data(features).join("path")
       .attr("class", "region").attr("d", (d) => path(d as any))
       .attr("data-key", (d) => d.properties.key);
+
+    // Inland water (Kinneret + Dead Sea), drawn over the land + city fills so the
+    // lakes always read as water with a clean shoreline. Non-interactive.
+    gWater.selectAll("path").data(water).join("path")
+      .attr("class", "lake")
+      .attr("d", (d) => path({ type: "Feature", geometry: d.geometry } as any));
 
     gDots.selectAll("circle").data(dots).join("circle")
       .attr("class", "dot").attr("data-key", (d) => d.key)
@@ -209,7 +220,7 @@ export default function MapView({
     });
     if (node.parentElement) ro.observe(node.parentElement);
     return () => ro.disconnect();
-  }, [features, dots, dotR, border]);
+  }, [features, dots, dotR, border, water]);
 
   // Recolor + (re)bind interactions whenever dataset or timestep changes.
   useEffect(() => {

@@ -52,6 +52,7 @@ See the `:root` block in `app/globals.css` for the full list; key tokens:
 | `--surface` | `rgba(252,251,248,.82)` | `rgba(34,34,40,.66)` | glass panels |
 | `--accent` | `#c2410c` | `#f97316` | brand mark, active states |
 | `--accent-strong` | `#9a3412` | `#fb923c` | tooltip values, selected borders |
+| `--water` | `#8fc3d0` | `#1d4f5e` | inland lakes (Kinneret, Dead Sea) |
 
 ### Neutral-first philosophy
 
@@ -86,6 +87,7 @@ No magic numbers: use the radius tokens and the `env(safe-area-inset-*)` wrapper
 
 - Projection: planar `d3.geoIdentity` with longitude×cos(lat) correction (not Mercator — see `docs/DECISIONS.md`).
 - Land fill: `--land`; sea fill: `--sea`; city regions: `--map-empty` when no data.
+- Inland water (Kinneret, Dead Sea) is its own layer drawn over the land + city fills in `--water` (a teal, kept distinct from the political-blue data colours) with a `--water-stroke` shoreline. Source: `public/data/water.json`. The coastline is clipped flush to the coastal cities and the Kinneret is cut out of the landmass — see `docs/DECISIONS.md`.
 - City labels: HTML overlay (not SVG text), positioned in screen-px by `MapView` so they stay crisp at any zoom.
 - Dot radius is driven by `weight` from `geo.json` (≈ electorate size), not the dataset value.
 

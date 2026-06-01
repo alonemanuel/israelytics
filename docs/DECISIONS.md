@@ -300,3 +300,36 @@ long/English/technical for end users — `infoHe` is a curated reader-facing blu
 hardcoding a party-breakdown type (would not generalize to other datasets).
 **Note:** `infoHe` panel is portaled to `<body>` — the header's `backdrop-filter`
 (`.glass`) is a containing block that otherwise traps `position:fixed` children.
+
+### 2026-06-01 — Map geometry fixes: real Golan, coast flush to cities, visible lakes
+**What:** Reworked `build_border.py` to fix three wrong things in the silhouette and to
+add an inland-water layer (`public/data/water.json`, drawn by `MapView`).
+- **Golan.** Replaced the *convex hull of the easternmost city anchors* (a crude straight
+  blob) with a real **Golan Heights** boundary from Natural Earth 10m `admin_0_disputed_areas`
+  (`sources/border-src/golan.json`). The hull both mis-shaped the NE and was redundant now
+  that the body already unions the city polygons.
+- **Coast flush to cities.** The `israel.json` outline sits ~10 km offshore, so the
+  silhouette showed a fat "beach" west of the coastal cities. We now subtract that offshore
+  strip — everything between the cities and the open Mediterranean — using a hand-drawn
+  offshore polygon whose eastern edge tracks the coast, **bounded north of Gaza** so it never
+  touches the Gaza-envelope / western-Negev localities. The coast edge now meets the city
+  borders. (First attempt auto-detected "the sea" as a connected exterior component; because
+  the Mediterranean wraps around the south to the eastern/northern borders — and merges with
+  the Gaza coast — buffering it clipped *all* borders and ate Ashkelon + the Gaza envelope.
+  The bounded hand-drawn polygon is the fix.)
+- **Visible lakes.** The Kinneret and Dead Sea (Natural Earth 10m `lakes`,
+  `sources/border-src/water.json`) are subtracted from the landmass (Kinneret → a hole;
+  Dead Sea → an eastern shoreline indentation) and re-emitted as `water.json`, which the
+  frontend draws as its own layer in a teal `--water` token (distinct from the RdBu
+  political blue) with a real shoreline.
+**Why:** all three were visibly wrong and the user asked for a beautiful, correct map. Cutting
+the lakes from the land *and* drawing them as a layer means the silhouette's edge/shadow
+respect the water while the lakes always read clearly as water regardless of overlap.
+**Rejected:** (a) deriving the lakes as holes in the dissolved city polygons — the cities ring
+the Kinneret but not the Israel/Jordan-straddling Dead Sea, so it wouldn't close; (b) swapping
+in a higher-res downloaded coastline — wouldn't be *flush with our city polygons*, which is
+what was asked; (c) eroding the whole body inward to the cities — would shrink the eastern/
+southern borders (no cities sit right at those) and distort the silhouette.
+**Note:** `border.json` carries the Kinneret as a hole; `.landmass` uses `fill-rule: evenodd`
+so the hole cuts through regardless of ring winding. Verified with the real d3 projection
+(geoIdentity + cos-lat) rasterized headless, since a browser couldn't be installed here.

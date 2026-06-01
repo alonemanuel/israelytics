@@ -11,7 +11,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 
 export default function Home() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const { geo, border, index, dataset, error } = useData(selectedId);
+  const { geo, border, water, index, dataset, error } = useData(selectedId);
   const [step, setStep] = useState(0);
 
   // default to the first dataset once the registry loads
@@ -27,7 +27,7 @@ export default function Home() {
   return (
     <main dir="rtl">
       {geo ? (
-        <MapView geo={geo} border={border} dataset={dataset} step={step} />
+        <MapView geo={geo} border={border} water={water} dataset={dataset} step={step} />
       ) : (
         !error && (
           <div className="center-msg">
