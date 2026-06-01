@@ -1,66 +1,117 @@
 /* ============================================================
    Israelytics — design tokens
-   Auto light/dark via prefers-color-scheme. Israeli-blue accent.
+   Neutral, low-tint palette so the data colors carry the map.
+   Theme: system by default; overridable via [data-theme] (persisted),
+   set pre-paint by the inline script in layout.tsx.
    ============================================================ */
 :root {
-  /* light (default) */
-  --bg-1: #eef2f9;
-  --bg-2: #dde6f4;
-  --ink: #10182a;
-  --muted: #5b6577;
-  --surface: rgba(255, 255, 255, 0.72);
-  --surface-solid: #ffffff;
-  --surface-hover: rgba(255, 255, 255, 0.92);
-  --border: rgba(16, 24, 42, 0.1);
-  --border-strong: rgba(16, 24, 42, 0.16);
+  /* light (default) — warm paper, neutral "sea", restrained azure accent */
+  --bg-1: #f4f3ef;
+  --bg-2: #e7e6e0;
+  --ink: #1b1a17;
+  --muted: #6c6a63;
+  --surface: rgba(252, 251, 248, 0.82);
+  --surface-solid: #fcfbf8;
+  --surface-hover: rgba(255, 255, 255, 0.95);
+  --border: rgba(27, 26, 23, 0.1);
+  --border-strong: rgba(27, 26, 23, 0.16);
 
-  --accent: #1f7fe0;
-  --accent-strong: #1769c4;
+  --accent: #c2410c;
+  --accent-strong: #9a3412;
   --accent-contrast: #ffffff;
-  --accent-soft: rgba(31, 127, 224, 0.14);
+  --accent-soft: rgba(194, 65, 12, 0.13);
 
-  --map-stroke: rgba(255, 255, 255, 0.85);
-  --map-empty: #cfd6e2;
+  /* map: land sits over a darker sea so the country reads as a shape even where
+     data is missing; a firm coastline + shadow lifts it off the water */
+  --sea: #d6d5cb;
+  --land: #f1f0ea;
+  --map-stroke: rgba(27, 26, 23, 0.1);
+  --map-empty: #eae9e3;
+  --outline: rgba(27, 26, 23, 0.42);
+  --outline-shadow: rgba(27, 26, 23, 0.22);
+  --label-ink: #15140f;
+  --label-halo: rgba(248, 247, 243, 0.92);
 
-  --shadow-sm: 0 1px 3px rgba(16, 24, 42, 0.08), 0 2px 8px rgba(16, 24, 42, 0.06);
-  --shadow-md: 0 8px 30px rgba(16, 24, 42, 0.14);
-  --shadow-lg: 0 18px 50px rgba(16, 24, 42, 0.2);
+  --shadow-sm: 0 1px 3px rgba(27, 26, 23, 0.08), 0 2px 8px rgba(27, 26, 23, 0.06);
+  --shadow-md: 0 8px 30px rgba(27, 26, 23, 0.13);
+  --shadow-lg: 0 18px 50px rgba(27, 26, 23, 0.18);
 
   --radius-sm: 10px;
   --radius-md: 14px;
   --radius-lg: 20px;
   --blur: 16px;
 
-  --tip-bg: rgba(17, 24, 39, 0.92);
-  --tip-ink: #ffffff;
+  --tip-bg: rgba(27, 26, 23, 0.94);
+  --tip-ink: #f8f7f3;
 }
 
+/* dark — neutral graphite (no navy/blue cast) */
+:root[data-theme="dark"] {
+  --bg-1: #16161a;
+  --bg-2: #101015;
+  --ink: #ecebe6;
+  --muted: #9b9a93;
+  --surface: rgba(34, 34, 40, 0.66);
+  --surface-solid: #1c1c21;
+  --surface-hover: rgba(48, 48, 56, 0.85);
+  --border: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.17);
+
+  --accent: #f97316;
+  --accent-strong: #fb923c;
+  --accent-contrast: #1a0e03;
+  --accent-soft: rgba(249, 115, 22, 0.2);
+
+  --sea: #0d0d10;
+  --land: #1a1a1f;
+  --map-stroke: rgba(0, 0, 0, 0.45);
+  --map-empty: #2c2c33;
+  --outline: rgba(255, 255, 255, 0.26);
+  --outline-shadow: rgba(0, 0, 0, 0.7);
+  --label-ink: #f4f3ee;
+  --label-halo: rgba(8, 8, 10, 0.85);
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.55);
+  --shadow-md: 0 10px 36px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 22px 60px rgba(0, 0, 0, 0.65);
+
+  --tip-bg: rgba(10, 10, 12, 0.94);
+  --tip-ink: #f1f0ea;
+}
+
+/* follow the OS only when the user hasn't explicitly chosen light */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --bg-1: #0b0f17;
-    --bg-2: #131a27;
-    --ink: #e9edf6;
-    --muted: #97a1b4;
-    --surface: rgba(22, 28, 40, 0.64);
-    --surface-solid: #161c28;
-    --surface-hover: rgba(33, 41, 58, 0.82);
-    --border: rgba(255, 255, 255, 0.09);
-    --border-strong: rgba(255, 255, 255, 0.16);
+  :root:not([data-theme="light"]) {
+    --bg-1: #16161a;
+    --bg-2: #101015;
+    --ink: #ecebe6;
+    --muted: #9b9a93;
+    --surface: rgba(34, 34, 40, 0.66);
+    --surface-solid: #1c1c21;
+    --surface-hover: rgba(48, 48, 56, 0.85);
+    --border: rgba(255, 255, 255, 0.1);
+    --border-strong: rgba(255, 255, 255, 0.17);
 
-    --accent: #3fa3ff;
-    --accent-strong: #62b5ff;
-    --accent-contrast: #04101f;
-    --accent-soft: rgba(63, 163, 255, 0.18);
+    --accent: #f97316;
+    --accent-strong: #fb923c;
+    --accent-contrast: #1a0e03;
+    --accent-soft: rgba(249, 115, 22, 0.2);
 
-    --map-stroke: rgba(11, 15, 23, 0.9);
-    --map-empty: #2a3445;
+    --sea: #0d0d10;
+    --land: #1a1a1f;
+    --map-stroke: rgba(0, 0, 0, 0.45);
+    --map-empty: #2c2c33;
+    --outline: rgba(255, 255, 255, 0.26);
+    --outline-shadow: rgba(0, 0, 0, 0.7);
+    --label-ink: #f4f3ee;
+    --label-halo: rgba(8, 8, 10, 0.85);
 
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
-    --shadow-md: 0 10px 36px rgba(0, 0, 0, 0.55);
-    --shadow-lg: 0 22px 60px rgba(0, 0, 0, 0.6);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.55);
+    --shadow-md: 0 10px 36px rgba(0, 0, 0, 0.6);
+    --shadow-lg: 0 22px 60px rgba(0, 0, 0, 0.65);
 
-    --tip-bg: rgba(8, 12, 20, 0.92);
-    --tip-ink: #eef3fb;
+    --tip-bg: rgba(10, 10, 12, 0.94);
+    --tip-ink: #f1f0ea;
   }
 }
 
@@ -122,6 +173,23 @@ main {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 46ch;
 }
 
+/* actions cluster at the inline-end of the top bar */
+.topbar-actions { display: flex; align-items: center; gap: 8px; flex: none; }
+
+/* ---------- theme toggle ---------- */
+.theme-toggle {
+  flex: none; width: 38px; height: 38px; border-radius: 999px;
+  border: 1px solid var(--border-strong); background: var(--surface-solid);
+  color: var(--ink); cursor: pointer; display: grid; place-items: center;
+  transition: border-color .15s, color .15s, background .15s, transform .15s;
+}
+.theme-toggle:hover { border-color: var(--accent); color: var(--accent); }
+.theme-toggle:active { transform: scale(0.92); }
+.theme-toggle:focus-visible {
+  outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.theme-toggle svg { width: 18px; height: 18px; display: block; }
+
 /* ---------- dataset picker ---------- */
 .picker { position: relative; flex: none; }
 .picker select {
@@ -149,9 +217,19 @@ main {
 }
 
 /* ---------- map stage ---------- */
-.stage { position: absolute; inset: 0; z-index: 0; }
+.stage {
+  position: absolute; inset: 0; z-index: 0;
+  background: radial-gradient(135% 115% at 75% -8%, var(--bg-1), var(--sea) 62%);
+}
 .stage svg { width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
 .stage svg:active { cursor: grabbing; }
+/* national silhouette: filled land + soft coastline + drop-shadow lift */
+.landmass {
+  fill: var(--land);
+  stroke: var(--outline); stroke-width: 1.5px; stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 4px 12px var(--outline-shadow));
+}
 .region {
   stroke: var(--map-stroke); stroke-width: 0.6px;
   vector-effect: non-scaling-stroke; transition: fill .25s ease;
@@ -162,6 +240,22 @@ main {
 }
 .region:hover, .dot:hover { stroke: var(--ink); stroke-width: 1.6px; }
 .region.sel, .dot.sel { stroke: var(--accent-strong); stroke-width: 2px; }
+/* city-name labels — HTML overlay positioned in screen px by MapView, so text is
+   crisp and constant-sized at any zoom (revealed progressively by weight) */
+.labels-layer {
+  position: absolute; inset: 0; z-index: 1;
+  pointer-events: none; overflow: hidden;
+}
+.labels-layer .city-label {
+  position: absolute; top: 0; left: 0; will-change: transform;
+  font-size: 13px; font-weight: 700; letter-spacing: -0.2px; line-height: 1;
+  white-space: nowrap; color: var(--label-ink);
+  text-shadow:
+    -1px -1px 0 var(--label-halo), 1px -1px 0 var(--label-halo),
+    -1px 1px 0 var(--label-halo), 1px 1px 0 var(--label-halo),
+    0 0 3px var(--label-halo);
+}
+@media (max-width: 560px) { .labels-layer .city-label { font-size: 12px; } }
 
 /* ---------- zoom controls ---------- */
 .zoomctl {
@@ -260,9 +354,14 @@ main {
   border: 1px solid var(--border);
   padding: 5px 10px; border-radius: 999px;
   font-size: 13px; font-weight: 700; box-shadow: var(--shadow-sm);
-  transform: translateY(-50%);
+  transform: translateY(-50%) translateX(6px);
+  opacity: 0; transition: opacity .18s ease, transform .18s ease;
 }
 .timeline .tlabel small { color: var(--muted); font-weight: 500; margin-right: 4px; }
+/* the label is a transient affordance: show only while the slider is in use */
+.timeline:hover .tlabel,
+.timeline:focus-within .tlabel,
+.timeline.active .tlabel { opacity: 1; transform: translateY(-50%) translateX(0); }
 
 /* ---------- states ---------- */
 .center-msg {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Dataset, DatasetSummary, GeoData } from "./types";
+import type { BorderGeometry, Dataset, DatasetSummary, GeoData } from "./types";
 
 async function getJSON<T>(url: string): Promise<T> {
   const res = await fetch(url);
@@ -13,12 +13,15 @@ async function getJSON<T>(url: string): Promise<T> {
  * dataset whenever it changes. */
 export function useData(selectedId: string | null) {
   const [geo, setGeo] = useState<GeoData | null>(null);
+  const [border, setBorder] = useState<BorderGeometry | null>(null);
   const [index, setIndex] = useState<DatasetSummary[]>([]);
   const [dataset, setDataset] = useState<Dataset | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     getJSON<GeoData>("/data/geo.json").then(setGeo).catch((e) => setError(String(e)));
+    // border is decorative — if it fails to load the map still works, so don't error
+    getJSON<BorderGeometry>("/data/border.json").then(setBorder).catch(() => {});
     getJSON<DatasetSummary[]>("/data/datasets/index.json")
       .then(setIndex)
       .catch((e) => setError(String(e)));
@@ -32,5 +35,5 @@ export function useData(selectedId: string | null) {
       .catch((e) => setError(String(e)));
   }, [selectedId]);
 
-  return { geo, index, dataset, error };
+  return { geo, border, index, dataset, error };
 }

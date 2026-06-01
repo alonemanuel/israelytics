@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { Timestep } from "@/lib/types";
 
 /**
@@ -18,6 +18,10 @@ export default function Timeline({
   onStep: (i: number) => void;
 }) {
   const trackRef = useRef<HTMLDivElement>(null);
+  // `active` keeps the label visible during a touch drag (where :hover doesn't fire);
+  // it lingers briefly after release so the final value stays readable.
+  const [active, setActive] = useState(false);
+  const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   if (timesteps.length <= 1) return null; // snapshot dataset: no slider
 
@@ -38,10 +42,16 @@ export default function Timeline({
 
   const onPointerDown = (e: React.PointerEvent) => {
     (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+    if (idleTimer.current) clearTimeout(idleTimer.current);
+    setActive(true);
     setFromClientY(e.clientY);
   };
   const onPointerMove = (e: React.PointerEvent) => {
     if (e.buttons !== 0) setFromClientY(e.clientY);
+  };
+  const onPointerUp = () => {
+    if (idleTimer.current) clearTimeout(idleTimer.current);
+    idleTimer.current = setTimeout(() => setActive(false), 900);
   };
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowUp" || e.key === "ArrowRight") {
@@ -54,12 +64,14 @@ export default function Timeline({
   };
 
   return (
-    <div className="timeline glass">
+    <div className={`timeline glass${active ? " active" : ""}`}>
       <div
         ref={trackRef}
         className="track"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
         role="slider"
         tabIndex={0}
         aria-label="ציר זמן"

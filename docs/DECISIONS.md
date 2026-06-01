@@ -210,3 +210,40 @@ matching published Shas+UTJ results; per-city spot checks (Bnei Brak 0.80→0.90
 Modiin Illit ~0.97, Tel Aviv 0.09→0.05) are correct.
 **Note:** Adds an `xlrd` dependency (only path that reads legacy `.xls`); recorded
 in `pipeline/requirements.txt`.
+
+### 2026-06-01 — Map redesign: national outline, neutral theme, screen-space labels
+**What:** A visual overhaul of the map view. Four notable decisions below.
+
+**National outline (`border.json`).** Added a filled country silhouette so land
+reads as clearly separated from sea. Built by `build_border.py` as the **union** of
+(a) an Israel outline + (b) a West Bank outline (both from
+github.com/georgique/world-geojson, committed under `basemap/sources/border-src/`)
++ (c) the dissolved city polygons and a convex hull of the easternmost cities.
+**Why this and not a single downloaded border:** the data includes Golan and eastern
+localities that any one political outline omits, so a recognised-Israel border alone
+left ~28 cities outside the line. Unioning with the data guarantees the outline
+contains **every** city (verified 0 outside) and sidesteps picking a contested
+boundary — it is "the extent of what we render."
+**Rejected:** (1) dissolving only the city polygons — they are non-contiguous
+(scattered municipal areas), so the union was a 25-piece archipelago, not a country.
+(2) Adopting a tile/vector map provider (MapLibre) for the border + labels — would
+require fixing CBS polygon winding for Mercator, a tile-provider API key, and a
+`MapView` rewrite, for a basemap mostly hidden under the choropleth. Deferred.
+
+**Theme.** Replaced the blue-tinted palette + auto-only dark mode with a neutral
+(warm-paper / graphite) palette and an explicit light/dark **toggle** persisted in
+localStorage, applied pre-paint by an inline script in `layout.tsx` to avoid a flash.
+The no-data color became a CSS var (`--map-empty`) so it follows the theme.
+**Why:** the blue cast fought the data colors; users want to choose, and the choice
+must survive reloads.
+
+**City labels in screen space.** Labels are an HTML overlay positioned in real px by
+projecting centroids through the live zoom transform, with weight-priority collision.
+**Why:** the first attempt rendered SVG text inside the zoomed `<g>` sized at
+`12/k` units — tiny on mobile (canvas-relative, not screen) and kerning broke at high
+zoom (sub-pixel font scaled up). Screen-space text is crisp at every zoom, on every
+device, with no new dependency.
+
+**Pinned tooltip follows its city.** A pinned (clicked) tooltip is re-anchored to its
+city centroid on every zoom/pan (and hidden when the city scrolls off-stage), instead
+of staying frozen at the original click pixel.

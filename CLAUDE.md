@@ -39,9 +39,11 @@ pipeline/            Python: raw sources -> standard JSON (never knows about ren
   common/geo_index.py    lookup(cbs_code) -> (kind, name, geometry)  [CBS code join]
   common/elections.py    shared election-CSV reader + Haredi math
   basemap/               the shared map of Israel — a provenance package
-    sources/             localities.geojson (CBS polygons), coords.csv, aliases.csv
+    sources/             localities.geojson (CBS polygons), coords.csv, aliases.csv,
+                         border-src/ (israel + west-bank outlines)
     SOURCE.md            where geometry came from + method
     build_geo.py         -> public/data/geo.json
+    build_border.py      -> public/data/border.json (dissolved national outline)
   datasets/              one self-contained provenance package per dataset
     _TEMPLATE/           copy to start a new dataset (SOURCE.md, build.py, sources/)
     haredi-vote/
@@ -50,9 +52,9 @@ pipeline/            Python: raw sources -> standard JSON (never knows about ren
       build.py           -> public/data/datasets/haredi-vote.json (+ registers it)
 app/                 Next.js App Router (TypeScript)
   page.tsx               client view: picker + map + timeline
-components/          DatasetPicker, MapView (D3 SVG + zoom/pan), Timeline, Legend
+components/          DatasetPicker, MapView (D3 SVG + zoom/pan), Timeline, Legend, ThemeToggle
 lib/                 types.ts, colorScale.ts, useData.ts
-public/data/         geo.json, datasets/<id>.json, datasets/index.json
+public/data/         geo.json, border.json, datasets/<id>.json, datasets/index.json
 ```
 
 Each dataset (and the basemap) is a **provenance package**: its raw downloaded
@@ -121,6 +123,10 @@ election-based datasets use `"k19"`, `"k20"`, etc.; year-based datasets use `"20
 
 ## Safety / workflow
 
+- **Develop new features in a git worktree**, not directly on `main`. Create an
+  isolated worktree (e.g. `git worktree add ../israelytics-<feature> -b <feature>`),
+  build the feature there, then open a PR to merge back. Keeps `main` clean and
+  lets the running dev server stay untouched.
 - Don't `git push` or deploy without explicit go-ahead.
 - Each dataset's raw lives in its own `sources/` and **is committed** (provenance).
   The only gitignored raw is the dead `pipeline/sources/` leftover.
