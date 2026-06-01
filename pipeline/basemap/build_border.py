@@ -42,13 +42,15 @@ GEO = os.path.join(ROOT, "public", "data", "geo.json")
 OUT_BORDER = os.path.join(ROOT, "public", "data", "border.json")
 OUT_WATER = os.path.join(ROOT, "public", "data", "water.json")
 
-WELD = 0.012        # deg: bridge gaps between the political outlines and data blobs
-SIMPLIFY = 0.0007   # deg (~70 m): thin the outline while keeping the coast crisp
+WELD = 0.012         # deg: bridge gaps between the political outlines and data blobs
+SIMPLIFY = 0.0015    # deg (~150 m): thin the *inland* border + the water bodies
+COAST_BRIDGE = 0.016 # deg (~1.6 km): bridge the gaps between coastal cities so the
+                     # coastline runs smoothly across beaches/reserves between towns
 
 # The Mediterranean, as a polygon west of the country whose eastern edge tracks
 # the real coastline (a touch inland of it). Intersected with the body it is the
-# fat offshore strip the crude israel.json outline adds; subtracting the cities
-# from it makes the clip stop exactly at the coastal city edges. Bounded north of
+# fat offshore strip the crude israel.json outline adds; subtracting the coastal
+# cities from it makes the clip stop exactly at the city edges. Bounded north of
 # Gaza so it never touches the Gaza envelope / western Negev localities.
 MED_COAST = Polygon([
     (33.00, 31.55), (34.58, 31.62), (34.67, 31.80), (34.79, 32.08),
@@ -93,7 +95,10 @@ def build():
     israel = _clean(_load_geom(os.path.join(SRC, "israel.json")))
     pal = _clean(_load_geom(os.path.join(SRC, "palestine.json")))
     golan = _clean(_load_geom(os.path.join(SRC, "golan.json")))
-    water = _read_water()
+    # Simplify the water once and reuse it for both the cut-out and the layer, so
+    # the Kinneret hole in the land matches the water drawn over it exactly.
+    water = [(name, _clean(g.simplify(SIMPLIFY, preserve_topology=True)))
+             for name, g in _read_water()]
     water_u = unary_union([g for _, g in water])
 
     with open(GEO, encoding="utf-8") as f:
@@ -103,29 +108,34 @@ def build():
         for c in geo["cities"].values() if c.get("kind") == "polygon"
     ])
 
-    # 1) one coherent body, gaps closed, interior data-holes filled
+    # 1) one coherent body, gaps closed, interior data-holes filled. Simplify it
+    #    now: this smooths the inland / eastern / southern borders, while the
+    #    western coast is replaced below by the full-resolution city edges (which
+    #    must stay bit-for-bit identical to the city regions, so they're flush).
     body = _clean(unary_union([israel, pal, golan, cities_u]))
     body = _clean(body.buffer(WELD).buffer(-WELD))
     body = _fill_holes(_largest(body))
+    body = _clean(body.simplify(SIMPLIFY, preserve_topology=True))
 
-    # 2) clip the western coast flush to the coastal cities
-    beach = MED_COAST.intersection(body).difference(cities_u.buffer(0.003))
+    # 2) clip the western coast flush to the coastal cities. The coastline becomes
+    #    the seaward edge of the coastal-city union itself (full resolution, the
+    #    same geometry the city regions are drawn from), with the gaps between
+    #    towns bridged so it runs smoothly along the beach. The result is NOT
+    #    simplified again — that would move the coast off the city edges.
+    coast = _clean(cities_u.buffer(COAST_BRIDGE).buffer(-COAST_BRIDGE))
+    beach = MED_COAST.intersection(body).difference(coast)
     land = _clean(body.difference(beach))
-    land = _clean(unary_union([land, cities_u]))   # re-attach any pinched coastal city
+    land = _clean(unary_union([land, cities_u]))   # coast == exact city edges
     land = _fill_holes(_largest(land))
 
     # 3) cut the inland water out of the land (Kinneret becomes a hole; the Dead
     #    Sea, straddling the eastern edge, becomes a shoreline indentation)
-    land = _clean(land.difference(water_u)).simplify(SIMPLIFY, preserve_topology=True)
-    land = orient(_largest(land), sign=1.0)        # exterior CCW, holes CW
+    land = orient(_largest(_clean(land.difference(water_u))), sign=1.0)  # ext CCW, holes CW
 
     with open(OUT_BORDER, "w", encoding="utf-8") as f:
         json.dump(mapping(land), f, ensure_ascii=False, separators=(",", ":"))
 
-    water_out = [
-        {"nameHe": name, "geometry": mapping(geom.simplify(SIMPLIFY, preserve_topology=True))}
-        for name, geom in water
-    ]
+    water_out = [{"nameHe": name, "geometry": mapping(geom)} for name, geom in water]
     with open(OUT_WATER, "w", encoding="utf-8") as f:
         json.dump(water_out, f, ensure_ascii=False, separators=(",", ":"))
 

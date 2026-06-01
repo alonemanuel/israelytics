@@ -309,14 +309,20 @@ add an inland-water layer (`public/data/water.json`, drawn by `MapView`).
   (`sources/border-src/golan.json`). The hull both mis-shaped the NE and was redundant now
   that the body already unions the city polygons.
 - **Coast flush to cities.** The `israel.json` outline sits ~10 km offshore, so the
-  silhouette showed a fat "beach" west of the coastal cities. We now subtract that offshore
+  silhouette showed a fat "beach" west of the coastal cities. We subtract that offshore
   strip — everything between the cities and the open Mediterranean — using a hand-drawn
   offshore polygon whose eastern edge tracks the coast, **bounded north of Gaza** so it never
-  touches the Gaza-envelope / western-Negev localities. The coast edge now meets the city
-  borders. (First attempt auto-detected "the sea" as a connected exterior component; because
-  the Mediterranean wraps around the south to the eastern/northern borders — and merges with
-  the Gaza coast — buffering it clipped *all* borders and ate Ashkelon + the Gaza envelope.
-  The bounded hand-drawn polygon is the fix.)
+  touches the Gaza-envelope / western-Negev localities. (First attempt auto-detected "the sea"
+  as a connected exterior component; because the Mediterranean wraps around the south to the
+  eastern/northern borders — and merges with the Gaza coast — buffering it clipped *all*
+  borders and ate Ashkelon + the Gaza envelope. The bounded hand-drawn polygon is the fix.)
+  *Crucially, the coastline must be the **same geometry as the city regions** or it reads as
+  weird in/out slivers — the land edge weaving across the city edges.* So the coast becomes the
+  seaward edge of the **coastal-city union itself**, full-resolution, with gaps between towns
+  bridged (`COAST_BRIDGE` close) for a smooth beach line, and it is **not** re-simplified (only
+  the inland/eastern/southern borders are). The body is simplified *before* the coast is built,
+  so the file stays small (57 KB vs geo.json's ~1 MB) while the coast stays bit-for-bit on the
+  city edges. Result: 0 cities outside the land.
 - **Visible lakes.** The Kinneret and Dead Sea (Natural Earth 10m `lakes`,
   `sources/border-src/water.json`) are subtracted from the landmass (Kinneret → a hole;
   Dead Sea → an eastern shoreline indentation) and re-emitted as `water.json`, which the

@@ -50,15 +50,20 @@ silhouette) and the inland water layer:
 2. **Clip the western coast flush to the coastal cities.** The `israel.json` outline
    sits ~10 km offshore, which left an ugly "beach" between the cities and the sea.
    We subtract that offshore strip (everything between the cities and the open
-   Mediterranean, bounded north of Gaza) so the land edge meets the city borders.
+   Mediterranean, bounded north of Gaza) so the coastline becomes the **seaward edge
+   of the coastal-city union itself** — the same full-resolution geometry the city
+   regions are drawn from, so the land edge and the city borders are bit-for-bit
+   flush. Gaps between coastal towns are bridged (`COAST_BRIDGE`) so the line runs
+   smoothly along the beach, and the coast is **not** re-simplified (that would move
+   it off the city edges). Only the inland/eastern/southern borders are simplified.
 3. **Subtract the inland water** (`water.json`): the Kinneret becomes a hole in the
    landmass; the Dead Sea, straddling the eastern edge, becomes a shoreline
    indentation. `water.json` is emitted separately so the frontend draws the lakes as
    their own layer (clear water with a real shoreline).
 
-The result still **contains every city** in `geo.json` (only a few beachfront
-kibbutzim sit right at the new waterline, by design). This is deliberately "the
-extent of what we render," not a statement on borders. See `docs/DECISIONS.md`.
+The result still **contains every city** in `geo.json` (0 outside). This is
+deliberately "the extent of what we render," not a statement on borders. See
+`docs/DECISIONS.md`.
 
 ## Cross-dependency (intentional)
 
