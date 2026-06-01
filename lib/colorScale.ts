@@ -1,7 +1,9 @@
 import * as d3 from "d3";
 import type { ColorSpec } from "./types";
 
-export const NO_DATA_COLOR = "#94a0b3";
+// Theme token (resolved by the SVG/CSS at render time) so "no data" cells follow
+// light/dark instead of being a fixed blue-gray. Works as an SVG fill and in CSS.
+export const NO_DATA_COLOR = "var(--map-empty)";
 
 // d3 scheme name -> interpolator. Extend as new datasets need new schemes.
 const INTERPOLATORS: Record<string, (t: number) => string> = {

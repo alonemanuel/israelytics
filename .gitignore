@@ -3,8 +3,11 @@
 .vscode/
 .DS_Store
 
+# Claude Code git worktrees (local feature workspaces)
+.claude/worktrees/
+
 # Node / Next
-node_modules/
+node_modules
 .next/
 out/
 *.tsbuildinfo

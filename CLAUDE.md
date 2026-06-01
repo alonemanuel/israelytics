@@ -40,9 +40,11 @@ pipeline/            Python: raw sources -> standard JSON (never knows about ren
   common/elections.py    shared election reader + per-dataset vote math
                          (SOURCES_DIR, haredi_share, PARTIES/BLOC, right_left_margin, top_parties)
   basemap/               the shared map of Israel — a provenance package
-    sources/             localities.geojson (CBS polygons), coords.csv, aliases.csv
+    sources/             localities.geojson (CBS polygons), coords.csv, aliases.csv,
+                         border-src/ (israel + west-bank outlines)
     SOURCE.md            where geometry came from + method
     build_geo.py         -> public/data/geo.json
+    build_border.py      -> public/data/border.json (dissolved national outline)
   elections/             SHARED source: raw Knesset results, feeding many datasets
     sources/             raw election files 17-25 (per-locality CSVs + 17/18 ballot-box), committed
     SOURCE.md            source links + how the reader parses them
@@ -54,9 +56,9 @@ pipeline/            Python: raw sources -> standard JSON (never knows about ren
       SOURCE.md, build.py    -> public/data/datasets/right-left-vote.json (+ registers it)
 app/                 Next.js App Router (TypeScript)
   page.tsx               client view: picker + map + timeline + info panel
-components/          DatasetPicker, MapView (D3 SVG + zoom/pan), Timeline, Legend, InfoButton
+components/          DatasetPicker, MapView (D3 SVG + zoom/pan), Timeline, Legend, InfoButton, ThemeToggle
 lib/                 types.ts, colorScale.ts, useData.ts
-public/data/         geo.json, datasets/<id>.json, datasets/index.json
+public/data/         geo.json, border.json, datasets/<id>.json, datasets/index.json
 ```
 
 Each dataset (and the basemap) is a **provenance package**: `SOURCE.md` records
@@ -154,6 +156,10 @@ optional; when present an ⓘ button opens a panel rendering it (markdown-lite:
 
 ## Safety / workflow
 
+- **Develop new features in a git worktree**, not directly on `main`. Create an
+  isolated worktree (e.g. `git worktree add ../israelytics-<feature> -b <feature>`),
+  build the feature there, then open a PR to merge back. Keeps `main` clean and
+  lets the running dev server stay untouched.
 - Don't `git push` or deploy without explicit go-ahead.
 - Each dataset's raw lives in its own `sources/` and **is committed** (provenance).
   The only gitignored raw is the dead `pipeline/sources/` leftover.

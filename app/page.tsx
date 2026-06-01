@@ -7,10 +7,11 @@ import Timeline from "@/components/Timeline";
 import Legend from "@/components/Legend";
 import MapView from "@/components/MapView";
 import InfoButton from "@/components/InfoButton";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default function Home() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const { geo, index, dataset, error } = useData(selectedId);
+  const { geo, border, index, dataset, error } = useData(selectedId);
   const [step, setStep] = useState(0);
 
   // default to the first dataset once the registry loads
@@ -26,7 +27,7 @@ export default function Home() {
   return (
     <main dir="rtl">
       {geo ? (
-        <MapView geo={geo} dataset={dataset} step={step} />
+        <MapView geo={geo} border={border} dataset={dataset} step={step} />
       ) : (
         !error && (
           <div className="center-msg">
@@ -55,9 +56,12 @@ export default function Home() {
             {dataset?.descriptionHe && <p>{dataset.descriptionHe}</p>}
           </div>
         </div>
-        {index.length > 0 && (
-          <DatasetPicker index={index} selectedId={selectedId} onSelect={setSelectedId} />
-        )}
+        <div className="topbar-actions">
+          {index.length > 0 && (
+            <DatasetPicker index={index} selectedId={selectedId} onSelect={setSelectedId} />
+          )}
+          <ThemeToggle />
+        </div>
       </header>
 
       {dataset && (
