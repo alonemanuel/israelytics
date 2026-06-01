@@ -43,6 +43,15 @@
 
   --tip-bg: rgba(27, 26, 23, 0.94);
   --tip-ink: #f8f7f3;
+
+  /* type scale */
+  --text-xs:   11px;
+  --text-sm:   13px;
+  --text-base: 15px;
+  --text-lg:   18px;
+  --text-xl:   22px;
+  --text-2xl:  28px;
+  --text-3xl:  36px;
 }
 
 /* dark — neutral graphite (no navy/blue cast) */
@@ -123,6 +132,7 @@ body {
   background-attachment: fixed;
   color: var(--ink);
   font-family: var(--font-sans), -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: var(--text-base);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   overscroll-behavior: none;
@@ -157,20 +167,26 @@ main {
 }
 .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .brand .mark {
-  width: 30px; height: 30px; flex: none; border-radius: 9px;
-  background: linear-gradient(150deg, var(--accent), var(--accent-strong));
-  box-shadow: 0 4px 12px var(--accent-soft);
-  display: grid; place-items: center; color: var(--accent-contrast);
-  font-weight: 800; font-size: 16px;
+  flex: none;
+  font-family: var(--font-serif), Georgia, serif;
+  font-weight: 900; font-size: 32px; line-height: 1;
+  color: var(--accent);
+  letter-spacing: 0;
+  user-select: none; -webkit-user-select: none;
 }
 .brand .titles { min-width: 0; }
 .brand h1 {
-  margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -0.2px;
+  margin: 0;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: var(--text-xl); font-weight: 800; letter-spacing: -0.4px;
   line-height: 1.1; white-space: nowrap;
 }
 .brand p {
-  margin: 1px 0 0; color: var(--muted); font-size: 12px; line-height: 1.25;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 46ch;
+  margin: 2px 0 0;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: var(--text-sm); font-weight: 400;
+  color: var(--muted); line-height: 1.3;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 48ch;
 }
 
 /* actions cluster at the inline-end of the top bar */
@@ -199,7 +215,8 @@ main {
   border: 1px solid var(--border-strong);
   border-radius: 999px;
   padding-block: 9px; padding-inline-start: 16px; padding-inline-end: 34px;
-  font: inherit; font-size: 13px; font-weight: 600;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: var(--text-sm); font-weight: 600;
   cursor: pointer; max-width: 52vw; text-overflow: ellipsis;
   transition: border-color .15s, box-shadow .15s;
 }
@@ -248,14 +265,15 @@ main {
 }
 .labels-layer .city-label {
   position: absolute; top: 0; left: 0; will-change: transform;
-  font-size: 13px; font-weight: 700; letter-spacing: -0.2px; line-height: 1;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: var(--text-sm); font-weight: 600; letter-spacing: 0; line-height: 1;
   white-space: nowrap; color: var(--label-ink);
   text-shadow:
     -1px -1px 0 var(--label-halo), 1px -1px 0 var(--label-halo),
     -1px 1px 0 var(--label-halo), 1px 1px 0 var(--label-halo),
     0 0 3px var(--label-halo);
 }
-@media (max-width: 560px) { .labels-layer .city-label { font-size: 12px; } }
+@media (max-width: 560px) { .labels-layer .city-label { font-size: var(--text-xs); } }
 
 /* ---------- zoom controls ---------- */
 .zoomctl {
@@ -280,15 +298,22 @@ main {
 .tooltip {
   position: absolute; z-index: 40; pointer-events: none;
   background: var(--tip-bg); color: var(--tip-ink);
-  padding: 8px 11px; border-radius: 10px; font-size: 13px; line-height: 1.35;
+  padding: 9px 13px; border-radius: 10px; font-size: var(--text-sm); line-height: 1.4;
   opacity: 0; transform: translateY(2px);
   transition: opacity .12s, transform .12s; white-space: nowrap;
   box-shadow: var(--shadow-lg);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 .tooltip.show { opacity: 1; transform: translateY(0); }
-.tooltip b { font-size: 14px; font-weight: 700; }
-.tooltip .val { color: var(--accent-strong); font-weight: 700; }
+.tooltip b {
+  font-family: var(--font-serif), Georgia, serif;
+  font-size: var(--text-base); font-weight: 500; letter-spacing: 0;
+}
+.tooltip .val {
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: var(--text-sm); font-weight: 700;
+  font-variant-numeric: tabular-nums; color: var(--accent-strong);
+}
 
 /* per-city value breakdown (e.g. party vote shares) */
 .tooltip .parts {
@@ -331,13 +356,21 @@ main {
   box-shadow: var(--shadow-lg);
 }
 .info-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.info-head h2 { font-size: 17px; font-weight: 700; margin: 0; }
+.info-head h2 {
+  font-family: var(--font-serif), Georgia, serif;
+  font-size: var(--text-xl); font-weight: 700; margin: 0;
+  letter-spacing: 0; line-height: 1.2;
+}
 .info-close {
   background: none; border: none; color: inherit; cursor: pointer;
   font-size: 16px; opacity: 0.6; padding: 4px;
 }
 .info-close:hover { opacity: 1; }
-.info-body { margin-top: 10px; font-size: 14px; line-height: 1.6; }
+.info-body {
+  margin-top: 10px;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: var(--text-base); font-weight: 400; line-height: 1.65;
+}
 .info-body p { margin: 0 0 10px; }
 .info-body ul { margin: 0 0 10px; padding-inline-start: 18px; }
 .info-body li { margin-bottom: 4px; }
@@ -348,9 +381,12 @@ main {
   position: absolute; z-index: 20;
   bottom: max(18px, env(safe-area-inset-bottom)); right: 14px;
   padding: 11px 13px; border-radius: var(--radius-md);
-  font-size: 12px; max-width: min(280px, 70vw);
+  font-size: var(--text-sm); max-width: min(280px, 70vw);
 }
-.legend .ltitle { font-weight: 700; font-size: 12.5px; margin-bottom: 7px; }
+.legend .ltitle {
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-weight: 700; font-size: var(--text-sm); margin-bottom: 7px; letter-spacing: 0;
+}
 .legend .bar { height: 10px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--border); }
 .legend .ends {
   display: flex; justify-content: space-between; color: var(--muted);
@@ -406,11 +442,12 @@ main {
   background: var(--surface-solid); color: var(--ink);
   border: 1px solid var(--border);
   padding: 5px 10px; border-radius: 999px;
-  font-size: 13px; font-weight: 700; box-shadow: var(--shadow-sm);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: var(--text-sm); font-weight: 700; box-shadow: var(--shadow-sm);
   transform: translateY(-50%) translateX(6px);
   opacity: 0; transition: opacity .18s ease, transform .18s ease;
 }
-.timeline .tlabel small { color: var(--muted); font-weight: 500; margin-right: 4px; }
+.timeline .tlabel small { color: var(--muted); font-weight: 400; margin-right: 4px; }
 /* the label is a transient affordance: show only while the slider is in use */
 .timeline:hover .tlabel,
 .timeline:focus-within .tlabel,
@@ -436,11 +473,12 @@ main {
 /* ---------- mobile ---------- */
 @media (max-width: 560px) {
   .brand p { display: none; }
-  .brand h1 { font-size: 16px; }
+  .brand .mark { font-size: 26px; }
+  .brand h1 { font-size: var(--text-lg); }
   .topbar { padding: 8px 10px; }
   .timeline { padding: 12px 8px; }
   .timeline .ticks { min-height: 150px; }
-  .legend { font-size: 11.5px; padding: 9px 11px; }
+  .legend { font-size: var(--text-xs); padding: 9px 11px; }
 }
 @media (max-width: 380px) {
   .picker select { max-width: 44vw; }

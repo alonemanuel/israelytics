@@ -20,10 +20,13 @@ This is what makes the platform extensible: a new dataset is a new JSON file, no
 
 ## Maintain the docs
 
-This repo keeps three docs in sync with reality. **When you change the project, update them:**
+This repo keeps four docs in sync with reality. **When you change the project, update them:**
 
 - **`README.md`** — what Israelytics is + how to run it + how to add a dataset (for newcomers).
 - **`CLAUDE.md`** (this file) — architecture, the data-format contract, conventions.
+- **`docs/DESIGN.md`** — design system: typefaces, type scale, colour tokens, glass surface, spacing.
+  **When you change the visual design** (fonts, colours, layout, new UI components), update this file.
+  It is the source of truth for any frontend styling decision.
 - **`docs/DECISIONS.md`** — an append-only decision log.
   **When you make a decision with a non-obvious rationale, append an entry to
   `docs/DECISIONS.md`** (what was decided, why, and what was rejected). Don't bury such
