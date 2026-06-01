@@ -1,13 +1,32 @@
 import type { Metadata, Viewport } from "next";
-import { Heebo } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-// Branded Hebrew + Latin webfont, self-hosted by next/font (no layout shift).
-const heebo = Heebo({
-  subsets: ["hebrew", "latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  display: "swap",
+const narkissTam = localFont({
+  src: [
+    { path: "./fonts/NarkissTam-Light.woff2",    weight: "300" },
+    { path: "./fonts/NarkissTam-Regular.woff2",  weight: "400" },
+    { path: "./fonts/NarkissTam-Medium.woff2",   weight: "500" },
+    { path: "./fonts/NarkissTam-Semibold.woff2", weight: "600" },
+    { path: "./fonts/NarkissTam-Bold.woff2",     weight: "700" },
+    { path: "./fonts/NarkissTam-Heavy.woff2",    weight: "800" },
+    { path: "./fonts/NarkissTam-Black.woff2",    weight: "900" },
+  ],
   variable: "--font-sans",
+  display: "swap",
+});
+
+const hadassah = localFont({
+  src: [
+    { path: "./fonts/Hadassah-Thin.woff2",    weight: "100" },
+    { path: "./fonts/Hadassah-Light.woff2",   weight: "300" },
+    { path: "./fonts/Hadassah-Regular.woff2", weight: "400" },
+    { path: "./fonts/Hadassah-Medium.woff2",  weight: "500" },
+    { path: "./fonts/Hadassah-Heavy.woff2",   weight: "700" },
+    { path: "./fonts/Hadassah-Black.woff2",   weight: "900" },
+  ],
+  variable: "--font-serif",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -15,7 +34,6 @@ export const metadata: Metadata = {
   description: "Visualize data about Israeli cities on a map, over time.",
 };
 
-// Drives the browser chrome color in each color scheme.
 export const viewport: Viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f4f3ef" },
@@ -27,14 +45,11 @@ export const viewport: Viewport = {
   userScalable: false,
 };
 
-// Apply the persisted theme before first paint so there's no light/dark flash.
-// Rendered as the first node in <body> (a raw <head> <script> isn't reliably
-// executed under the App Router) so it runs synchronously during HTML parse.
 const themeInit = `(function(){try{var t=localStorage.getItem('israelytics-theme');if(t==='dark'||t==='light'){document.documentElement.dataset.theme=t;}}catch(e){}})();`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="he" className={heebo.variable}>
+    <html lang="he" className={`${narkissTam.variable} ${hadassah.variable}`}>
       <body>
         <script dangerouslySetInnerHTML={{ __html: themeInit }} />
         {children}
