@@ -44,10 +44,11 @@ pipeline/            Python: raw sources -> standard JSON (never knows about ren
                          (SOURCES_DIR, haredi_share, PARTIES/BLOC, right_left_margin, top_parties)
   basemap/               the shared map of Israel — a provenance package
     sources/             localities.geojson (CBS polygons), coords.csv, aliases.csv,
-                         border-src/ (israel + west-bank outlines)
+                         border-src/ (israel + west-bank + golan outlines, water)
     SOURCE.md            where geometry came from + method
     build_geo.py         -> public/data/geo.json
-    build_border.py      -> public/data/border.json (dissolved national outline)
+    build_border.py      -> public/data/border.json (national outline, coast clipped to
+                            cities, Kinneret cut out) + water.json (Kinneret + Dead Sea)
   elections/             SHARED source: raw Knesset results, feeding many datasets
     sources/             raw election files 17-25 (per-locality CSVs + 17/18 ballot-box), committed
     SOURCE.md            source links + how the reader parses them
@@ -61,7 +62,7 @@ app/                 Next.js App Router (TypeScript)
   page.tsx               client view: picker + map + timeline + info panel
 components/          DatasetPicker, MapView (D3 SVG + zoom/pan), Timeline, Legend, InfoButton, ThemeToggle
 lib/                 types.ts, colorScale.ts, useData.ts
-public/data/         geo.json, border.json, datasets/<id>.json, datasets/index.json
+public/data/         geo.json, border.json, water.json, datasets/<id>.json, datasets/index.json
 ```
 
 Each dataset (and the basemap) is a **provenance package**: `SOURCE.md` records

@@ -34,6 +34,7 @@ npm run dev          # http://localhost:3000
 
 # rebuild the data files (Python pipeline; outputs into public/data/):
 python pipeline/basemap/build_geo.py               # -> public/data/geo.json
+python pipeline/basemap/build_border.py            # -> public/data/border.json + water.json (run after geo)
 python pipeline/datasets/haredi-vote/build.py      # -> datasets/haredi-vote.json + registers it
 python pipeline/datasets/right-left-vote/build.py  # -> datasets/right-left-vote.json + registers it
 

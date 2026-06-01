@@ -25,8 +25,18 @@ export interface GeoData {
 }
 
 // National outline (public/data/border.json) — a single dissolved landmass that
-// contains every city, built by pipeline/basemap/build_border.py.
+// contains every city, with the Kinneret cut out as a hole. Built by
+// pipeline/basemap/build_border.py.
 export type BorderGeometry = Geometry;
+
+// Inland water bodies (public/data/water.json) — the Kinneret and Dead Sea,
+// drawn as their own layer so they read clearly as water. Built alongside the
+// border by pipeline/basemap/build_border.py.
+export interface WaterBody {
+  nameHe: string;
+  geometry: Geometry;
+}
+export type WaterData = WaterBody[];
 
 export interface ColorSpec {
   type: "sequential" | "diverging";

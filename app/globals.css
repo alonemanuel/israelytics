@@ -29,6 +29,10 @@
   --map-empty: #eae9e3;
   --outline: rgba(27, 26, 23, 0.42);
   --outline-shadow: rgba(27, 26, 23, 0.22);
+  /* inland water (Kinneret, Dead Sea): a soft, slightly muted azure — clearly
+     water against the warm land, without shouting over the data colors */
+  --water: #8fc3d0;
+  --water-stroke: rgba(34, 96, 114, 0.55);
   --label-ink: #15140f;
   --label-halo: rgba(248, 247, 243, 0.92);
 
@@ -77,6 +81,8 @@
   --map-empty: #2c2c33;
   --outline: rgba(255, 255, 255, 0.26);
   --outline-shadow: rgba(0, 0, 0, 0.7);
+  --water: #1d4f5e;
+  --water-stroke: rgba(122, 198, 214, 0.5);
   --label-ink: #f4f3ee;
   --label-halo: rgba(8, 8, 10, 0.85);
 
@@ -112,6 +118,8 @@
     --map-empty: #2c2c33;
     --outline: rgba(255, 255, 255, 0.26);
     --outline-shadow: rgba(0, 0, 0, 0.7);
+    --water: #1d4f5e;
+    --water-stroke: rgba(122, 198, 214, 0.5);
     --label-ink: #f4f3ee;
     --label-halo: rgba(8, 8, 10, 0.85);
 
@@ -242,10 +250,16 @@ main {
 .stage svg:active { cursor: grabbing; }
 /* national silhouette: filled land + soft coastline + drop-shadow lift */
 .landmass {
-  fill: var(--land);
+  fill: var(--land); fill-rule: evenodd; /* evenodd so the Kinneret hole cuts through */
   stroke: var(--outline); stroke-width: 1.5px; stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
   filter: drop-shadow(0 4px 12px var(--outline-shadow));
+}
+/* inland lakes (Kinneret, Dead Sea) — own layer over the land + city fills */
+.lake {
+  fill: var(--water);
+  stroke: var(--water-stroke); stroke-width: 1px; stroke-linejoin: round;
+  vector-effect: non-scaling-stroke; pointer-events: none;
 }
 .region {
   stroke: var(--map-stroke); stroke-width: 0.6px;
