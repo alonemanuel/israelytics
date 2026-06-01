@@ -45,24 +45,23 @@ export default function Home() {
         </div>
       )}
 
-      <header className="topbar glass">
-        <div className="brand">
-          <div className="mark">י</div>
-          <div className="titles">
-            <h1>
-              Israelytics
-              {dataset && <InfoButton dataset={dataset} />}
-            </h1>
-            {dataset?.descriptionHe && <p>{dataset.descriptionHe}</p>}
-          </div>
+      <header className="masthead glass">
+        <div className="brand-lockup">
+          <span className="mark">י</span>
+          <h1 className="eyebrow brand-name">Israelytics</h1>
         </div>
-        <div className="topbar-actions">
+        <div className="dataset-line">
           {index.length > 0 && (
             <DatasetPicker index={index} selectedId={selectedId} onSelect={setSelectedId} />
           )}
-          <ThemeToggle />
+          {dataset && <InfoButton dataset={dataset} />}
         </div>
+        {dataset?.descriptionHe && <p className="teaser">{dataset.descriptionHe}</p>}
       </header>
+
+      <div className="corner-tl">
+        <ThemeToggle />
+      </div>
 
       {dataset && (
         <Timeline timesteps={dataset.timesteps} step={step} onStep={setStep} />
