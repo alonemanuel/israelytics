@@ -300,3 +300,28 @@ long/English/technical for end users — `infoHe` is a curated reader-facing blu
 hardcoding a party-breakdown type (would not generalize to other datasets).
 **Note:** `infoHe` panel is portaled to `<body>` — the header's `backdrop-filter`
 (`.glass`) is a containing block that otherwise traps `position:fixed` children.
+
+### 2026-06-01 — Editorial, type-led visual refresh (masthead = picker)
+**What:** Reworked the frontend styling toward an editorial type-foundry aesthetic
+(reference: Hagilda, Fontef). Three moves: (1) the dataset `<select>` is now styled
+*as* the serif headline — big Hadassah display, transparent/borderless, slim chevron
+— so the page's typographic hero and its dataset picker are one element; above it a
+tracked-out uppercase Latin eyebrow ("Israelytics") with the serif "י" mark, below it
+the `descriptionHe` teaser. (2) Surfaces went from heavy frosted glass (16px blur,
+big shadows, pill chrome) to **flat paper**: ~0.86 opacity, 11px blur, light shadows,
+smaller radii, hairline (`--hairline`) dividers. (3) The masthead **hugs its content**
+at the top-start corner (was a full-width bar), and the theme toggle floats free in the
+opposite corner. Added type tokens (`--text-2xl/3xl` enlarged, `--track-tight/-wide`,
+`--faint`) and tabular figures on all numeric UI.
+**Why:** The old look was generic glassmorphism-dashboard; the brief was "beautiful,
+minimalistic, typography-focused." Making the dataset title the display face (a) gives
+the page a real headline, (b) removes the title/dropdown duplication, and (c) leans on
+the two Hebrew typefaces already loaded. Flattening the chrome lets the map's data
+colours carry the visual weight (the neutral-first rule) instead of competing with
+frosted panels. Only `app/globals.css` + `app/page.tsx` changed — components were
+restyled via existing class names, no logic touched.
+**Rejected:** A full-width masthead bar (left a large empty expanse with content
+clustered to the RTL start; the hugging card reads as intentional). A custom dropdown
+component (the native `<select>` styles fine as display text and keeps a11y/mobile for
+free). Changing the accent away from terracotta (it's warm and restrained; kept, used
+more sparingly).
