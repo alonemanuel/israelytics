@@ -2,10 +2,10 @@
 
 Geometry comes from this folder's sources/ (localities.geojson, coords.csv).
 The city *universe* and per-city size `weight` are derived from the election
-results, which live with the dataset that owns them
-(../datasets/haredi-vote/sources). That cross-dependency is intentional and
-documented in basemap/SOURCE.md; if the basemap ever needs to stand alone,
-swap in a dedicated CBS locality+population source.
+results in the shared election-source package (../elections/sources, exposed as
+elections.SOURCES_DIR). That cross-dependency is intentional and documented in
+basemap/SOURCE.md; if the basemap ever needs to stand alone, swap in a dedicated
+CBS locality+population source.
 """
 
 import json
@@ -14,12 +14,12 @@ import sys
 
 HERE = os.path.dirname(__file__)
 sys.path.insert(0, os.path.join(HERE, "..", "common"))
-from elections import ELECTIONS, read_localities                    # noqa: E402
+from elections import ELECTIONS, SOURCES_DIR, read_localities       # noqa: E402
 from geo_index import GeoIndex                                     # noqa: E402
 
 ROOT = os.path.join(HERE, "..", "..")
 GEO_SOURCES = os.path.join(HERE, "sources")
-ELECTION_SOURCES = os.path.join(HERE, "..", "datasets", "haredi-vote", "sources")
+ELECTION_SOURCES = SOURCES_DIR
 OUT = os.path.join(ROOT, "public", "data", "geo.json")
 
 

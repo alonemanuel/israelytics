@@ -1,14 +1,22 @@
-"""Shared reading of the Knesset election CSVs and the Haredi-share math.
+"""Shared reading of the Knesset election CSVs + per-dataset vote math.
 
-Used by build_geo (for the per-city size weight) and build_haredi (for values).
-The CSVs are per-locality, one column per party ballot-letter; files mix UTF-8
-and Windows-1255 encodings and vary their headers slightly across elections.
+Used by build_geo (for the per-city size weight) and by every election-derived
+dataset (haredi-vote, right-left-vote, ...) for its values. The raw results are
+one shared source feeding many visualizations; the per-derivation math (Haredi
+share, right/left margin) also lives here so the reductions sit next to the
+reader. The CSVs are per-locality, one column per party ballot-letter; files mix
+UTF-8 and Windows-1255 encodings and vary their headers slightly across elections.
 """
 
 import csv
 import os
 
 from normalize import normalize
+
+# The shared election-results source package. All consumers read the raw CSVs
+# from here — the results belong to no single dataset.
+SOURCES_DIR = os.path.normpath(
+    os.path.join(os.path.dirname(__file__), "..", "elections", "sources"))
 
 # (election number, human label). Elections 17-25, 2006-2022.
 ELECTIONS = [
@@ -49,6 +57,140 @@ def haredi_share(votes, valid):
         return None
     haredi = sum(votes.get(l, 0) for l in HAREDI_LETTERS)
     return haredi / valid
+
+
+# Per-election party table: ballot letter -> (Hebrew party name, bloc). This is
+# the single source of truth for both the right/left margin (the bloc field) and
+# the per-city "how they voted" breakdown (the name field). It MUST be keyed by
+# election: letters are reused across elections by completely different parties —
+# e.g. כן = Kadima in 2006 but National Unity in 2021-22; ב = Jewish Home in 2009
+# but Yamina in 2021; ט = National Union in 2009 but Religious Zionism in 2021. A
+# single global letter->party map would be silently wrong.
+#
+# Bloc rule (documented in datasets/right-left-vote/SOURCE.md):
+#   - Ideological placement. Religious-right, settler/national, and secular
+#     nationalist (Yisrael Beiteinu) parties -> "R".
+#   - Genuine-center parties (Kadima, Yesh Atid, Kahol Lavan / National Unity,
+#     Kulanu, Pensioners) and the Zionist/Arab/communist left -> "L". This applies
+#     the "center -> left, Arab -> left" two-bloc choice for this dataset.
+#   - New Hope (Sa'ar) is an explicitly right-wing breakaway -> "R".
+# bloc=None means "named but unclassified" (won't move the margin). Letters absent
+# entirely (tiny/unidentified lists) show in a breakdown under their raw letter.
+PARTIES = {
+    17: {  # 2006
+        "מחל": ("הליכוד", "R"), "ל": ("ישראל ביתנו", "R"), "שס": ('ש"ס', "R"),
+        "ג": ("יהדות התורה", "R"), "טב": ('האיחוד הלאומי-מפד"ל', "R"),
+        "כן": ("קדימה", "L"), "אמת": ("העבודה", "L"), "זך": ("גיל הגמלאים", "L"),
+        "מרצ": ("מרצ", "L"), "עם": ('רע"מ-תע"ל', "L"), "ו": ('חד"ש', "L"), "ד": ('בל"ד', "L"),
+    },
+    18: {  # 2009
+        "מחל": ("הליכוד", "R"), "ל": ("ישראל ביתנו", "R"), "שס": ('ש"ס', "R"),
+        "ג": ("יהדות התורה", "R"), "ט": ("האיחוד הלאומי", "R"), "ב": ("הבית היהודי", "R"),
+        "כן": ("קדימה", "L"), "אמת": ("העבודה", "L"), "מרצ": ("מרצ", "L"),
+        "עם": ('רע"מ-תע"ל', "L"), "ו": ('חד"ש', "L"), "ד": ('בל"ד', "L"),
+    },
+    19: {  # Jan 2013
+        "מחל": ("הליכוד ביתנו", "R"), "שס": ('ש"ס', "R"), "טב": ("הבית היהודי", "R"),
+        "ג": ("יהדות התורה", "R"), "נץ": ("עוצמה לישראל", "R"),
+        "פה": ("יש עתיד", "L"), "אמת": ("העבודה", "L"), "צפ": ("התנועה", "L"),
+        "מרץ": ("מרצ", "L"), "כן": ("קדימה", "L"),
+        "עם": ('רע"מ-תע"ל', "L"), "ו": ('חד"ש', "L"), "ד": ('בל"ד', "L"),
+    },
+    20: {  # Mar 2015
+        "מחל": ("הליכוד", "R"), "טב": ("הבית היהודי", "R"), "שס": ('ש"ס', "R"),
+        "ל": ("ישראל ביתנו", "R"), "ג": ("יהדות התורה", "R"), "קץ": ("יחד", "R"),
+        "אמת": ("המחנה הציוני", "L"), "פה": ("יש עתיד", "L"), "כ": ("כולנו", "L"),
+        "מרצ": ("מרצ", "L"), "ודעם": ("הרשימה המשותפת", "L"),
+    },
+    21: {  # Apr 2019
+        "מחל": ("הליכוד", "R"), "שס": ('ש"ס', "R"), "ג": ("יהדות התורה", "R"),
+        "ל": ("ישראל ביתנו", "R"), "טב": ("איחוד מפלגות הימין", "R"),
+        "נ": ("הימין החדש", "R"), "ז": ("זהות", "R"),
+        "פה": ("כחול לבן", "L"), "אמת": ("העבודה", "L"), "מרצ": ("מרצ", "L"),
+        "כ": ("כולנו", "L"), "נר": ("גשר", "L"),
+        "ום": ('חד"ש-תע"ל', "L"), "דעם": ('רע"מ-בל"ד', "L"),
+    },
+    22: {  # Sep 2019
+        "מחל": ("הליכוד", "R"), "שס": ('ש"ס', "R"), "ל": ("ישראל ביתנו", "R"),
+        "ג": ("יהדות התורה", "R"), "טב": ("ימינה", "R"), "כף": ("עוצמה יהודית", "R"),
+        "פה": ("כחול לבן", "L"), "אמת": ("העבודה-גשר", "L"),
+        "מרצ": ("המחנה הדמוקרטי", "L"), "ודעם": ("הרשימה המשותפת", "L"),
+    },
+    23: {  # Mar 2020
+        "מחל": ("הליכוד", "R"), "שס": ('ש"ס', "R"), "ג": ("יהדות התורה", "R"),
+        "ל": ("ישראל ביתנו", "R"), "טב": ("ימינה", "R"),
+        "פה": ("כחול לבן", "L"), "אמת": ("העבודה-גשר-מרצ", "L"),
+        "ודעם": ("הרשימה המשותפת", "L"),
+    },
+    24: {  # Mar 2021
+        "מחל": ("הליכוד", "R"), "שס": ('ש"ס', "R"), "ג": ("יהדות התורה", "R"),
+        "ב": ("ימינה", "R"), "ל": ("ישראל ביתנו", "R"), "ט": ("הציונות הדתית", "R"),
+        "ת": ("תקווה חדשה", "R"),
+        "פה": ("יש עתיד", "L"), "כן": ("כחול לבן", "L"), "אמת": ("העבודה", "L"),
+        "מרצ": ("מרצ", "L"), "ודעם": ("הרשימה המשותפת", "L"), "עם": ('רע"מ', "L"),
+    },
+    25: {  # Nov 2022
+        "מחל": ("הליכוד", "R"), "ט": ("הציונות הדתית", "R"), "שס": ('ש"ס', "R"),
+        "ג": ("יהדות התורה", "R"), "ל": ("ישראל ביתנו", "R"), "ב": ("הבית היהודי", "R"),
+        "פה": ("יש עתיד", "L"), "כן": ("המחנה הממלכתי", "L"), "אמת": ("העבודה", "L"),
+        "מרצ": ("מרצ", "L"), "עם": ('רע"מ', "L"), "ום": ('חד"ש-תע"ל', "L"), "ד": ('בל"ד', "L"),
+    },
+}
+
+# Derived letter -> bloc map per election (only the classified letters).
+BLOC = {e: {ltr: bloc for ltr, (_, bloc) in parties.items() if bloc}
+        for e, parties in PARTIES.items()}
+
+
+def right_left_margin(votes, election):
+    """Signed right-vs-left margin in [-1, +1] for one locality in `election`:
+    (R - L) / (R + L) over the votes whose ballot letter is classified in
+    BLOC[election]. +1 = entirely right bloc, -1 = entirely left bloc, 0 = even.
+    Returns None if no classified votes (so the city shows as no-data, never a
+    misleading 0). Unclassified letters are ignored — they belong to neither bloc.
+    """
+    blocs = BLOC[election]
+    r = sum(c for letter, c in votes.items() if blocs.get(letter) == "R")
+    l = sum(c for letter, c in votes.items() if blocs.get(letter) == "L")
+    if r + l == 0:
+        return None
+    return (r - l) / (r + l)
+
+
+def classified_share(votes, valid, election):
+    """Fraction of valid votes that fell into a classified (R or L) bloc — a
+    coverage stat for the right/left builder. 0 if no valid votes."""
+    if not valid:
+        return 0.0
+    blocs = BLOC[election]
+    return sum(c for letter, c in votes.items() if letter in blocs) / valid
+
+
+def top_parties(votes, valid, election, n=6):
+    """The per-city "how they voted" breakdown: the top `n` parties by votes, each
+    as {labelHe, value (share of valid votes), tag?}, plus an aggregated "אחר"
+    (other) row so the parts sum to ~1. `tag` is "R"/"L" when the party is in a
+    bloc, omitted otherwise. Named from PARTIES[election]; unknown letters fall
+    back to the raw letter. Returns [] if there are no valid votes."""
+    if not valid:
+        return []
+    names = PARTIES.get(election, {})
+    ranked = sorted(votes.items(), key=lambda kv: -kv[1])
+    parts = []
+    shown = 0
+    for letter, c in ranked[:n]:
+        if c <= 0:
+            break
+        name, bloc = names.get(letter, (letter, None))
+        part = {"labelHe": name, "value": round(c / valid, 4)}
+        if bloc:
+            part["tag"] = bloc
+        parts.append(part)
+        shown += c
+    other = valid - shown
+    if other > 0:
+        parts.append({"labelHe": "אחר", "value": round(other / valid, 4)})
+    return parts
 
 
 def merge_shares(share_lists):

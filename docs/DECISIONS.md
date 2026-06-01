@@ -247,3 +247,56 @@ device, with no new dependency.
 **Pinned tooltip follows its city.** A pinned (clicked) tooltip is re-anchored to its
 city centroid on every zoom/pan (and hidden when the city scrolls off-stage), instead
 of staying frozen at the original click pixel.
+
+### 2026-06-01 — Promote the election results to a shared source package
+**What:** Moved the raw Knesset CSVs out of `datasets/haredi-vote/sources/` into a
+new top-level `pipeline/elections/` provenance package (its own `SOURCE.md`). All
+consumers — `basemap/build_geo.py` and every election-derived dataset — now read
+them via `elections.SOURCES_DIR`. Introduced the idea that **one source feeds many
+datasets**; a dataset is a *reduction* of a source, not necessarily the owner of raw.
+**Why:** The results were never really "the haredi dataset's data" — the basemap
+already reached into that folder (a documented cross-dependency), and adding a
+right-vs-left map gave a third consumer of the identical raw. Filing shared raw
+under one arbitrary dataset is a smell that gets worse with each new consumer.
+**Rejected:** (a) *Piggyback* — point the new builder at `../haredi-vote/sources`.
+Zero migration but doubles down on the mis-filing; two outsiders reaching into one
+dataset. (b) Put the raw in `pipeline/sources/` — that path is gitignored, and
+shared raw must be committed for provenance, so it would have been invisible.
+**Note:** `git mv` preserved history; the basemap's cross-dependency note and
+CLAUDE.md were updated to point at the shared package.
+
+### 2026-06-01 — Right-vs-Left dataset: signed margin, two-bloc, per-election table
+**What:** Added `right-left-vote` — value = `(R − L)/(R + L)` in [−1,+1], rendered
+with a diverging RdBu scale (red=left, blue=right, white=even). Parties are split
+into exactly two blocs (no center bucket) via a **per-election** letter→party→bloc
+table (`elections.PARTIES`), with center and Arab parties counted as **Left**.
+**Why:** A signed margin reads naturally as a red↔blue political map and reuses the
+already-generic diverging colorScale (no frontend change). The table *must* be
+per-election because ballot letters are reused by different parties across years
+(`כן`=Kadima→National Unity; `ב`=Jewish Home→Yamina; `ט`=National Union→Religious
+Zionism) — a global letter map would be silently wrong. Two-bloc + center/Arab→Left
+were explicit user choices, documented as editorial in the dataset's SOURCE.md.
+**Validation:** National margins match the historical record — 2006 = −0.167 (the
+real 50R/70L seat split), flipping right from 2009 on; coverage 95–99% of valid votes.
+**Rejected:** Right-share-of-(R+L) as a 0..1 value (less intuitive than a signed
+axis); a three-bloc scheme with a neutral center (user chose two-bloc); a single
+global party table (wrong, per above).
+
+### 2026-06-01 — Generic per-cell breakdown (`{v, parts}`) + per-dataset `infoHe`
+**What:** Two extensions so a dataset can say more than one number. (1) A cell may be
+`{v, parts:[{labelHe,value,tag?}]}` instead of a bare number — `v` still drives the
+color; `parts` is an optional breakdown shown in the tooltip (right-left fills the
+top-6 parties + "אחר", tagged R/L). (2) A dataset may carry `infoHe`, markdown-lite
+methodology shown behind an ⓘ button. Both are optional and dataset-agnostic; the
+frontend reads cells through `cellValue()`/`cellParts()` and changes nothing else.
+**Why:** "Right vs Left = −0.38" is opaque on its own — users want to know *how* a
+city voted and *what the blocs mean*. Keeping the channels generic (`parts`/`tag`
+are not party-specific; `info` is just markdown) means future non-election datasets
+reuse them for free, preserving the "new dataset = new JSON, not new code" property.
+**Rejected:** A separate lazy-loaded `<id>.details.json` sidecar (kept inline —
+right-left is ~400 KB gzipped, a non-issue at one-country scale, and avoids a second
+fetch + loading state); rendering the dev-facing `SOURCE.md` as the info panel (too
+long/English/technical for end users — `infoHe` is a curated reader-facing blurb);
+hardcoding a party-breakdown type (would not generalize to other datasets).
+**Note:** `infoHe` panel is portaled to `<body>` — the header's `backdrop-filter`
+(`.glass`) is a containing block that otherwise traps `position:fixed` children.

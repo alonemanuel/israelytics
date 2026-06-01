@@ -6,6 +6,7 @@ import DatasetPicker from "@/components/DatasetPicker";
 import Timeline from "@/components/Timeline";
 import Legend from "@/components/Legend";
 import MapView from "@/components/MapView";
+import InfoButton from "@/components/InfoButton";
 import ThemeToggle from "@/components/ThemeToggle";
 
 export default function Home() {
@@ -48,7 +49,10 @@ export default function Home() {
         <div className="brand">
           <div className="mark">י</div>
           <div className="titles">
-            <h1>Israelytics</h1>
+            <h1>
+              Israelytics
+              {dataset && <InfoButton dataset={dataset} />}
+            </h1>
             {dataset?.descriptionHe && <p>{dataset.descriptionHe}</p>}
           </div>
         </div>

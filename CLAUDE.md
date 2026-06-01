@@ -37,31 +37,39 @@ This repo keeps three docs in sync with reality. **When you change the project, 
 pipeline/            Python: raw sources -> standard JSON (never knows about rendering)
   common/normalize.py    canonical city-name normalization (used for coords fallback)
   common/geo_index.py    lookup(cbs_code) -> (kind, name, geometry)  [CBS code join]
-  common/elections.py    shared election-CSV reader + Haredi math
+  common/elections.py    shared election reader + per-dataset vote math
+                         (SOURCES_DIR, haredi_share, PARTIES/BLOC, right_left_margin, top_parties)
   basemap/               the shared map of Israel — a provenance package
     sources/             localities.geojson (CBS polygons), coords.csv, aliases.csv,
                          border-src/ (israel + west-bank outlines)
     SOURCE.md            where geometry came from + method
     build_geo.py         -> public/data/geo.json
     build_border.py      -> public/data/border.json (dissolved national outline)
-  datasets/              one self-contained provenance package per dataset
+  elections/             SHARED source: raw Knesset results, feeding many datasets
+    sources/             raw election files 17-25 (per-locality CSVs + 17/18 ballot-box), committed
+    SOURCE.md            source links + how the reader parses them
+  datasets/              one provenance package per dataset (a reduction of a source)
     _TEMPLATE/           copy to start a new dataset (SOURCE.md, build.py, sources/)
-    haredi-vote/
-      sources/           raw election files 17-25 (per-locality CSVs + 17/18 ballot-box), committed
-      SOURCE.md          source links + method + caveats
-      build.py           -> public/data/datasets/haredi-vote.json (+ registers it)
+    haredi-vote/         (Shas + UTJ) / valid  — reads ../../elections/sources
+      SOURCE.md, build.py    -> public/data/datasets/haredi-vote.json (+ registers it)
+    right-left-vote/     (R - L) / (R + L) margin + party breakdown — same source
+      SOURCE.md, build.py    -> public/data/datasets/right-left-vote.json (+ registers it)
 app/                 Next.js App Router (TypeScript)
-  page.tsx               client view: picker + map + timeline
-components/          DatasetPicker, MapView (D3 SVG + zoom/pan), Timeline, Legend, ThemeToggle
+  page.tsx               client view: picker + map + timeline + info panel
+components/          DatasetPicker, MapView (D3 SVG + zoom/pan), Timeline, Legend, InfoButton, ThemeToggle
 lib/                 types.ts, colorScale.ts, useData.ts
 public/data/         geo.json, border.json, datasets/<id>.json, datasets/index.json
 ```
 
-Each dataset (and the basemap) is a **provenance package**: its raw downloaded
-files live in `sources/` (committed as-is, never edited), `SOURCE.md` records where
-they came from + how they became numbers, and `build.py` is the reproducible builder.
-The basemap reads the election CSVs from `datasets/haredi-vote/sources/` for the
-city universe + size weight (documented cross-dependency).
+Each dataset (and the basemap) is a **provenance package**: `SOURCE.md` records
+where its numbers came from + how they were derived, and `build.py` is the
+reproducible builder. **Raw inputs live in `sources/`** (committed as-is, never
+edited) — either the package's own, or a **shared source package** when more than
+one consumer needs the same raw. The Knesset election results are such a shared
+source (`pipeline/elections/`): the basemap reads them for the city universe +
+size weight, and each election-derived dataset (`haredi-vote`, `right-left-vote`)
+is a different *reduction* of them via `common/elections.py`. A new
+election-based dataset is a new reduction, not a new copy of the raw.
 
 The pipeline produces data; the frontend is a pure view. Keep that boundary.
 
@@ -70,7 +78,7 @@ The pipeline produces data; the frontend is a pure view. Keep that boundary.
 **`geo.json`** — keyed by CBS locality code:
 ```jsonc
 { "cities": {
-  "3000": { "nameHe":"בני ברק", "kind":"polygon", "geometry":{...GeoJSON...}, "weight":95000 },
+  "3000": { "nameHe":"ירושלים", "kind":"polygon", "geometry":{...GeoJSON...}, "weight":380000 },
   "1295": { "nameHe":"כפר ורדים", "kind":"point", "lat":32.9, "lon":35.2, "weight":4200 }
 }}
 ```
@@ -79,21 +87,40 @@ The pipeline produces data; the frontend is a pure view. Keep that boundary.
 **`datasets/<id>.json`**:
 ```jsonc
 {
-  "id": "haredi-vote",
-  "title": "Haredi vote share", "titleHe": "שיעור ההצבעה החרדית",
-  "descriptionHe": "...",
-  "unit": "percent",
-  "colorScale": { "type":"sequential", "scheme":"Purples", "domain":[0,1], "power":0.55 },
+  "id": "right-left-vote",
+  "title": "Right vs Left vote", "titleHe": "ימין מול שמאל",
+  "descriptionHe": "...",          // one-line teaser shown under the header
+  "infoHe": "**מה רואים כאן?**\n...", // OPTIONAL longer methodology (markdown-lite, ⓘ panel)
+  "unit": "margin",                // "percent" | "margin" | ... drives value formatting
+  "colorScale": { "type":"diverging", "scheme":"RdBu", "domain":[-1,1], "midpoint":0 },
   "timesteps": [ {"id":"k19","label":"הכנסת ה-19","sub":"Jan 2013"} /* ... */ ],
-  "cities": { "3000": {"k19":0.85, "k20":0.83} }
+  "cities": {
+    // a cell is EITHER a bare number…
+    "3000": { "k19": 0.85, "k20": 0.83 },
+    // …OR {v, parts}: same scalar in `v` + an optional breakdown for the tooltip
+    "5000": { "k25": { "v": -0.38, "parts": [
+      {"labelHe":"יש עתיד","value":0.33,"tag":"L"},
+      {"labelHe":"הליכוד","value":0.17,"tag":"R"},
+      {"labelHe":"אחר","value":0.14}
+    ] } }
+  }
 }
 ```
 Each dataset defines its own timeline. Timestep IDs are dataset-specific strings —
 election-based datasets use `"k19"`, `"k20"`, etc.; year-based datasets use `"2020"`,
 `"2021"`, etc. City values are objects keyed by timestep ID (missing key = no data).
 
+A **cell** is either a bare `number` or `{v, parts}` — `v` is the scalar that
+drives the color (the only thing the map needs); `parts` is an optional generic
+breakdown `[{labelHe, value, tag?}]` rendered in the tooltip (`tag` is an opaque
+category marker the frontend uses only to color bars, e.g. `"R"`/`"L"`). Mixing
+the two forms within one dataset is allowed. The frontend reads cells through
+`cellValue()` / `cellParts()` in `lib/types.ts` — never index `.v` directly.
+
 `colorScale` is generic (`sequential`|`diverging`, a d3 scheme, domain, optional
-`power`/`midpoint`) so new datasets render without frontend changes.
+`power`/`midpoint`) so new datasets render without frontend changes. `infoHe` is
+optional; when present an ⓘ button opens a panel rendering it (markdown-lite:
+`**bold**`, blank-line paragraphs, `- ` bullets).
 
 **`datasets/index.json`** — registry for the picker: `[{id, titleHe, description}]`.
 
@@ -113,13 +140,19 @@ election-based datasets use `"k19"`, `"k20"`, etc.; year-based datasets use `"20
 ## Adding a dataset
 
 1. `cp -r pipeline/datasets/_TEMPLATE pipeline/datasets/<id>`.
-2. Drop the raw downloaded files into `<id>/sources/` (commit them as-is).
-3. Fill in `<id>/SOURCE.md` — **especially the source links and the method**. This
-   is required, not optional: a folder of numbers with no provenance is the exact
-   thing this structure exists to prevent.
-4. Implement `<id>/build.py` to read `./sources` and emit
-   `public/data/datasets/<id>.json` keyed by CBS code, registering itself in
-   `index.json`. It appears in the picker automatically.
+2. **Raw inputs:**
+   - *New raw source* → drop the downloaded files into `<id>/sources/` (commit as-is).
+   - *Reusing an existing shared source* (e.g. the Knesset results) → don't copy raw;
+     read it via the shared package, e.g. `from elections import SOURCES_DIR`, and put
+     your reduction in `common/` next to the others (see `right_left_margin`/`top_parties`).
+3. Fill in `<id>/SOURCE.md` — **especially the source links and the method** (for a
+   reused source, point at its package's `SOURCE.md` and document *your* reduction).
+   Required, not optional: a folder of numbers with no provenance is the exact thing
+   this structure exists to prevent.
+4. Implement `<id>/build.py` to emit `public/data/datasets/<id>.json` keyed by CBS
+   code, registering itself in `index.json`. It appears in the picker automatically.
+   - Optionally set `infoHe` (ⓘ methodology panel) and emit `{v, parts}` cells to
+     give each city a tooltip breakdown — both are generic, no frontend changes needed.
 
 ## Safety / workflow
 
