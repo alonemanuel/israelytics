@@ -24,6 +24,10 @@ export interface GeoData {
   cities: Record<string, City>;
 }
 
+// National outline (public/data/border.json) — a single dissolved landmass that
+// contains every city, built by pipeline/basemap/build_border.py.
+export type BorderGeometry = Geometry;
+
 export interface ColorSpec {
   type: "sequential" | "diverging";
   scheme: string; // d3 scheme name, e.g. "Purples", "RdBu"
