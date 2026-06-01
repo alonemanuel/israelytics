@@ -3,8 +3,9 @@ and register it in public/data/datasets/index.json.
 
 Per city per election: (Shas + UTJ) / valid votes. Spelling variants that
 resolve to the same CBS code are merged. Keys are CBS locality codes, so they
-line up with geo.json. Raw inputs and provenance live alongside this file:
-see ./sources and ./SOURCE.md.
+line up with geo.json. The raw election results live in the shared source
+package (pipeline/elections/sources, via elections.SOURCES_DIR); this dataset's
+own provenance (the method/caveats for *this* derivation) is in ./SOURCE.md.
 """
 
 import json
@@ -13,11 +14,11 @@ import sys
 
 HERE = os.path.dirname(__file__)
 sys.path.insert(0, os.path.join(HERE, "..", "..", "common"))
-from elections import ELECTIONS, read_localities, haredi_share, merge_shares  # noqa: E402
+from elections import ELECTIONS, SOURCES_DIR, read_localities, haredi_share, merge_shares  # noqa: E402
 from geo_index import GeoIndex                                                # noqa: E402
 
 ROOT = os.path.join(HERE, "..", "..", "..")
-OWN_SOURCES = os.path.join(HERE, "sources")
+ELECTION_SOURCES = SOURCES_DIR
 GEO_SOURCES = os.path.join(HERE, "..", "..", "basemap", "sources")
 DATASETS = os.path.join(ROOT, "public", "data", "datasets")
 
@@ -28,6 +29,14 @@ META = {
     "titleHe": "שיעור ההצבעה החרדית",
     "description": "Combined Shas + United Torah Judaism vote as a share of valid votes.",
     "descriptionHe": 'אחוז הקולות למפלגות החרדיות (ש"ס + יהדות התורה) מתוך כלל הקולות הכשרים.',
+    "infoHe": (
+        "**מה רואים כאן?**\n"
+        "לכל יישוב מוצג אחוז הקולות הכשרים שניתנו לשתי המפלגות החרדיות — "
+        "**ש\"ס** (חרדים ספרדים) ו**יהדות התורה** (חרדים אשכנזים) — בכל בחירות לכנסת, "
+        "מ-0% (בהיר) עד 100% (סגול כהה).\n\n"
+        "**הערה:** ש\"ס מושכת גם מצביעים מסורתיים שאינם חרדים, כך שהמדד נוטה "
+        "להעריך מעט יתר על המידה את ההצבעה החרדית המובהקת. זהו המדד המקובל."
+    ),
     "unit": "percent",
     "colorScale": {"type": "sequential", "scheme": "Purples", "domain": [0, 1],
                    "power": 0.55},
@@ -46,7 +55,7 @@ def build():
     unmatched = {}
 
     for i, (n, _) in enumerate(ELECTIONS):
-        for loc in read_localities(OWN_SOURCES, n):
+        for loc in read_localities(ELECTION_SOURCES, n):
             cbs = loc["cbs_code"]
             share = haredi_share(loc["votes"], loc["valid"])
             national_haredi[i] += sum(loc["votes"].get(l, 0) for l in ("שס", "ג"))

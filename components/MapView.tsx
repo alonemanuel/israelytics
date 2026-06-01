@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import * as d3 from "d3";
-import type { Dataset, GeoData, PolygonCity } from "@/lib/types";
+import type { Dataset, GeoData, PolygonCity, Part } from "@/lib/types";
+import { cellValue, cellParts } from "@/lib/types";
 import { makeColor } from "@/lib/colorScale";
 
 const VB = 1000;
@@ -112,14 +113,34 @@ export default function MapView({
     const svg = d3.select(node);
     const color = dataset ? makeColor(dataset.colorScale) : () => "#94a0b3";
     const tsId = dataset?.timesteps[step]?.id;
-    const valueOf = (key: string): number | null =>
+    const cellOf = (key: string) =>
       tsId != null ? (dataset?.cities[key]?.[tsId] ?? null) : null;
-    const fmt = (v: number | null) =>
-      v == null
-        ? "אין נתונים"
-        : dataset?.unit === "percent"
-        ? Math.round(v * 100) + "%"
-        : String(v);
+    const valueOf = (key: string): number | null => cellValue(cellOf(key));
+    const fmt = (v: number | null) => {
+      if (v == null) return "אין נתונים";
+      if (dataset?.unit === "percent") return Math.round(v * 100) + "%";
+      if (dataset?.unit === "margin") {
+        const p = Math.round(Math.abs(v) * 100);
+        if (p === 0) return "תיקו";
+        return (v > 0 ? "נטייה ימינה " : "נטייה שמאלה ") + p;
+      }
+      return String(v);
+    };
+    // Render a value breakdown (e.g. parties) as labeled bars. `tag` colors the
+    // bar (R/L for right-left); untagged parts get a neutral bar.
+    const partsHtml = (parts: Part[] | null): string => {
+      if (!parts || !parts.length) return "";
+      const rows = parts
+        .map((p) => {
+          const pct = Math.round(p.value * 100);
+          const cls = p.tag === "R" ? "r" : p.tag === "L" ? "l" : "n";
+          return `<div class="part"><span class="plabel">${p.labelHe}</span>`
+            + `<span class="pbar"><i class="${cls}" style="width:${Math.min(100, pct)}%"></i></span>`
+            + `<span class="ppct">${pct}%</span></div>`;
+        })
+        .join("");
+      return `<div class="parts">${rows}</div>`;
+    };
 
     svg.selectAll<SVGPathElement, Feature>("path.region")
       .attr("fill", (d) => color(valueOf(d.properties.key)));
@@ -140,7 +161,10 @@ export default function MapView({
         .style("transform", flipX ? "translateX(-100%)" : "");
     };
     const render = (name: string, key: string) =>
-      tip.html(`<b>${name}</b><br><span class="val">${fmt(valueOf(key))}</span>`).classed("show", true);
+      tip
+        .html(`<b>${name}</b><br><span class="val">${fmt(valueOf(key))}</span>`
+          + partsHtml(cellParts(cellOf(key))))
+        .classed("show", true);
     const showFor = (name: string, key: string, ev: any) => {
       render(name, key);
       place(ev);

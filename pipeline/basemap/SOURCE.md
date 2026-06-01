@@ -33,12 +33,13 @@ Built once; datasets join onto it by CBS code.
 
 ## Cross-dependency (intentional)
 
-The basemap reads the **election result CSVs** (which live with the dataset that
-owns them, `../datasets/haredi-vote/sources/`) to derive the locality universe and
-the `weight`. This couples the basemap to that dataset's raw. It's deliberate for
-now — the election files are the most complete locality list with a size measure.
-If the basemap ever needs to stand alone, replace this with a dedicated CBS
-locality + population source and drop the dependency.
+The basemap reads the **election result CSVs** from the shared election-results
+package (`../elections/sources/`, via `elections.SOURCES_DIR`) to derive the
+locality universe and the `weight`. This couples the basemap to the election
+source. It's deliberate for now — the election files are the most complete
+locality list with a size measure. If the basemap ever needs to stand alone,
+replace this with a dedicated CBS locality + population source and drop the
+dependency.
 
 ## Caveats
 

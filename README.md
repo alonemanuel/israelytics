@@ -7,9 +7,11 @@ slider to watch it change across time. It's built to be **generic**: the map of 
 is shared, and each dataset is just a data file. Adding a new dataset means dropping in
 a JSON file — no code changes.
 
-**Status:** working POC. The first dataset is **Haredi (ultra-orthodox) vote share
-per city across Knesset elections 17–25 (2006–2022)**. More datasets (population,
-turnout, income, …) can be added later.
+**Status:** working POC. Two datasets so far, both across Knesset elections 17–25
+(2006–2022): **Haredi (ultra-orthodox) vote share** per city, and **Right vs Left**
+(the signed bloc margin, with a per-city party breakdown on hover). They are two
+*reductions of the same election results* — a good illustration that one data source
+can drive many maps. More datasets (population, turnout, income, …) can be added later.
 
 ## How it works (the short version)
 
@@ -31,8 +33,9 @@ npm install
 npm run dev          # http://localhost:3000
 
 # rebuild the data files (Python pipeline; outputs into public/data/):
-python pipeline/basemap/build_geo.py              # -> public/data/geo.json
-python pipeline/datasets/haredi-vote/build.py     # -> datasets/haredi-vote.json + registers it
+python pipeline/basemap/build_geo.py               # -> public/data/geo.json
+python pipeline/datasets/haredi-vote/build.py      # -> datasets/haredi-vote.json + registers it
+python pipeline/datasets/right-left-vote/build.py  # -> datasets/right-left-vote.json + registers it
 
 # tests:
 python -m pytest pipeline/tests/    # pipeline logic
@@ -41,16 +44,22 @@ npx vitest run                      # colorScale
 
 ## Adding a new dataset
 
-Each dataset is a self-contained **provenance package** — raw files, where they came
-from, the method, and the builder all live together so it stays reproducible.
+Each dataset is a **provenance package** — its `SOURCE.md` (where the numbers came
+from + the method) and its `build.py` live together so it stays reproducible.
 
 1. `cp -r pipeline/datasets/_TEMPLATE pipeline/datasets/<id>`
-2. Put the raw files you downloaded into `<id>/sources/` (committed as-is).
+2. **Raw inputs:** put newly-downloaded files in `<id>/sources/` (committed as-is) —
+   *or*, if you're reusing an existing source (e.g. the Knesset results in
+   `pipeline/elections/`), read it via that shared package instead of copying.
 3. Fill in `<id>/SOURCE.md` — the source links, dates, and how raw → numbers.
 4. Implement `<id>/build.py` to emit `public/data/datasets/<id>.json` keyed by CBS
    locality code. It registers itself and shows up in the picker automatically.
+   Optionally add an `infoHe` methodology blurb (ⓘ panel) and `{v, parts}` cells
+   for a per-city tooltip breakdown — both are generic, no frontend changes needed.
 
-See `pipeline/datasets/haredi-vote/` as a worked example.
+Worked examples: `pipeline/datasets/haredi-vote/` (own simple reduction) and
+`pipeline/datasets/right-left-vote/` (reuses the shared election source + adds a
+breakdown and info panel).
 
 ## Tech
 
