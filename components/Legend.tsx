@@ -19,15 +19,15 @@ export default function Legend({ dataset }: { dataset: Dataset }) {
     dataset.unit === "percent" ? `${Math.round(v * 100)}%` : `${v}`;
 
   return (
-    <div className="legend glass">
-      <div className="ltitle">{dataset.titleHe}</div>
-      <div className="bar" style={{ background: gradient }} />
-      <div className="ends">
-        <span>{fmt(lo)}</span>
-        <span>{fmt((lo + hi) / 2)}</span>
-        <span>{fmt(hi)}</span>
+    <div className="legend">
+      <span className="kicker">מקרא</span>
+      <div className="legend-bar" style={{ background: gradient }} />
+      <div className="legend-ends">
+        <span className="mono">{fmt(lo)}</span>
+        <span className="mono">{fmt((lo + hi) / 2)}</span>
+        <span className="mono">{fmt(hi)}</span>
       </div>
-      <div className="nodata">
+      <div className="legend-nodata">
         <span className="swatch" style={{ background: NO_DATA_COLOR }} /> אין נתונים
       </div>
     </div>

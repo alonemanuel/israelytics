@@ -30,8 +30,8 @@ const hadassah = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Israelytics",
-  description: "Visualize data about Israeli cities on a map, over time.",
+  title: "ישראליטיקס",
+  description: "נתונים על ערי ישראל על גבי מפה, לאורך זמן.",
 };
 
 export const viewport: Viewport = {

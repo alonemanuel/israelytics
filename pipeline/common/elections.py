@@ -18,11 +18,12 @@ from normalize import normalize
 SOURCES_DIR = os.path.normpath(
     os.path.join(os.path.dirname(__file__), "..", "elections", "sources"))
 
-# (election number, human label). Elections 17-25, 2006-2022.
+# (election number, human label in Hebrew — the UI is Hebrew-only). Elections
+# 17-25, 2006-2022. Months spelled out in Hebrew where a year alone is ambiguous.
 ELECTIONS = [
-    (17, "2006"), (18, "2009"), (19, "Jan 2013"), (20, "Mar 2015"),
-    (21, "Apr 2019"), (22, "Sep 2019"), (23, "Mar 2020"), (24, "Mar 2021"),
-    (25, "Nov 2022"),
+    (17, "2006"), (18, "2009"), (19, "ינואר 2013"), (20, "מרץ 2015"),
+    (21, "אפריל 2019"), (22, "ספטמבר 2019"), (23, "מרץ 2020"), (24, "מרץ 2021"),
+    (25, "נובמבר 2022"),
 ]
 
 # Per-election source file + format. Elections 19-25 are per-locality CSVs;

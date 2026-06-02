@@ -339,3 +339,84 @@ southern borders (no cities sit right at those) and distort the silhouette.
 **Note:** `border.json` carries the Kinneret as a hole; `.landmass` uses `fill-rule: evenodd`
 so the hole cuts through regardless of ring winding. Verified with the real d3 projection
 (geoIdentity + cos-lat) rasterized headless, since a browser couldn't be installed here.
+
+### 2026-06-02 — Monochrome UI, color only from the data
+**What:** The entire chrome (top bar, picker, timeline, legend, zoom, tooltip frame) is
+achromatic — black/white/grays. The `--accent`/`--accent-strong` tokens, which used to be
+orange, are now plain ink (near-black in light, near-white in dark), so brand mark, focus
+rings, active states, selected outlines and the timeline fill all read as ink. Inland water
+(Kinneret/Dead Sea) was retinted from teal to a neutral cool gray for the same reason. The
+*only* color on screen now comes from the data layer.
+**Why:** User direction — "black/white style; the color will come from the data." A neutral
+shell makes the choropleth the unambiguous focus and lets any future dataset's palette stand
+out without competing with a chromatic UI.
+**Rejected:** Keeping the orange accent (the previous "neutral-first" compromise) — still a
+second hue competing with the map; a colored-per-dataset accent — ties chrome to data and
+muddies the "color = data" rule.
+
+### 2026-06-02 — Data divergence palette: EarthDiv (earth-purple ↔ earth-orange)
+**What:** Replaced the right-left dataset's `RdBu` (red↔blue) with a custom `EarthDiv`
+interpolator in `lib/colorScale.ts`: earth-purple at the low pole (left, −1), a warm neutral
+at the midpoint, earth-orange at the high pole (right, +1). Tooltip breakdown bars and the
+Hebrew copy (`כתום`/`סגול`) were updated to match; sequential `haredi-vote` stays on `Purples`
+(earth purple, one of the two poles).
+**Why:** User direction — data should be vivid and specifically "earth orange and earth
+purple." Orange-vs-purple also avoids the red/blue political-color baggage while orange keeps
+a loose cultural tie to the Israeli right. Orientation (purple low / orange high) is fixed in
+the interpolator so a dataset only names the scheme.
+**Rejected:** d3's stock `interpolatePuOr` — its orientation is orange-low/purple-high and its
+browns are muddier than the chosen earth tones.
+
+### 2026-06-02 — Brand: vector mark + Hebrew logotype, Hebrew-only UI
+**What:** The "י" glyph brand mark became a vectoric SVG (`components/BrandMark.tsx`): a rising
+analytics trend line whose peak is a Star of David — "Israel + analytics" in one monochrome
+`currentColor` glyph. The visible wordmark changed from English "Israelytics" to Hebrew
+"ישראליטיקס" (serif/Hadassah), and the document title/description are Hebrew too. On mobile the
+wordmark hides, leaving the icon + ⓘ, and the top bar tightens its insets/padding to hand the
+map as much screen as possible.
+**Why:** User direction — "nothing in English," a different/vectoric icon tied to Israel +
+analytics, and maximum mobile screen space. A vector mark scales crisply at the small mobile
+size where the wordmark is dropped.
+**Rejected:** A literal Israel-silhouette icon (illegible at 26–32px and hard to read as
+"analytics"); keeping the wordmark on mobile (eats the bar that the dataset name needs).
+
+### 2026-06-02 — Visual redesign: editorial "atlas" composition
+**What:** A ground-up restyle for a calmer, more designed feel. (1) Dropped the full-width
+top-bar slab; the brand is now a hugs-its-content **masthead card** (vector mark + serif
+wordmark + dataset caption) with the controls as separate floating glass pills — corner-anchored
+clusters over a full-bleed map. (2) Map: replaced the hard drop-shadow + 1.5px coast with a
+soft, diffuse lift + 1px hairline coast on a calm radial field; thinner region strokes; no-data
+tone pulled close to the land so data clusters read first. (3) Timeline: thin rail + small
+ticks + a refined thumb, with the active election shown as an always-on serif year readout that
+rides the thumb (was hover-only). (4) Legend: serif title, hairline-separated "no data" row.
+(5) Softer, larger-radius tokens (radii 12/16/22, blur 22px, diffuse shadows); deeper, calmer
+light/dark palettes. (6) Hebraized the election date subs (e.g. "Nov 2022" → "נובמבר 2022") so
+nothing in the UI is English.
+**Why:** User feedback that the prior pass was "still very ugly" and a request to "make it
+beautiful." The fixes target the specific ugliness: a heavy chrome slab, a hard-edged map, and
+plain edge widgets — replaced with restrained editorial typography, soft depth, and an always-on
+sense of where you are in time. Verified by iterating against headless screenshots (desktop +
+mobile, light + dark, both datasets).
+**Rejected:** A horizontal bottom timeline (cleaner in isolation but collides with the legend
+and needs a logic rewrite of the vertical scrubber); on-canvas brand text with no card (worse
+legibility where the map runs under the masthead).
+
+### 2026-06-02 — Full redesign: editorial "data broadsheet"
+**What:** Replaced the floating-glass-over-a-full-bleed-map paradigm with a flat, ruled Swiss
+editorial layout. `main` is a three-zone CSS grid separated by bold ink rules: a **masthead
+band** (wordmark + tag / picker + theme), a **workspace** (typographic sidebar on the right
+with the dataset title set huge in serif + the legend; line-drawn map on the left), and a
+**horizontal time-axis band** at the bottom (the old vertical scrubber, rewritten horizontal
+with monospace Knesset-number ticks and a serif "current election" readout). Removed all
+glass/blur/soft-shadow; surfaces are flat fills divided by rules and hairline borders. The map
+is now flat and line-drawn (faint land + crisp 1.25px coast, no drop-shadow). Numbers moved to
+a monospace stack for a tabular, technical feel. Near-square 4px corners.
+**Why:** Two rounds of refinement on the original paradigm still read as "the same website";
+the user asked for something *completely* new that looks VERY different. An editorial broadsheet
+is a genuinely different visual language — structure and typography carry the design instead of
+floating chrome — while still satisfying the standing constraints (monochrome UI, color only
+from the data, Hebrew-only, mobile-friendly). Iterated against headless screenshots
+(desktop + mobile, light + dark, both datasets).
+**Rejected:** More polish on the floating-glass layout (the user explicitly rejected this);
+a terminal/monospace "command center" (too cold for a public civic atlas); a scrollable
+data-story layout (loses the live map+timeline interaction that is the app's point).
