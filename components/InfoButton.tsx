@@ -63,7 +63,7 @@ export default function InfoButton({ dataset }: { dataset: Dataset }) {
   const overlay = open && (
     <div dir="rtl">
       <div className="info-scrim" onClick={() => setOpen(false)} />
-      <div className="info-panel glass" role="dialog" aria-modal="true">
+      <div className="info-panel" role="dialog" aria-modal="true">
         <div className="info-head">
           <h2>{dataset.titleHe}</h2>
           <button className="info-close" onClick={() => setOpen(false)} aria-label="סגירה">

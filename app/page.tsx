@@ -27,37 +27,13 @@ export default function Home() {
 
   return (
     <main dir="rtl">
-      {geo ? (
-        <MapView geo={geo} border={border} water={water} dataset={dataset} step={step} />
-      ) : (
-        !error && (
-          <div className="center-msg">
-            <div className="card glass">
-              <div className="spinner" />
-              טוען מפה…
-            </div>
-          </div>
-        )
-      )}
-
-      {error && (
-        <div className="center-msg error">
-          <div className="card glass">שגיאה בטעינת הנתונים: {error}</div>
-        </div>
-      )}
-
-      <header className="topbar">
-        <div className="brand glass">
+      <header className="masthead">
+        <div className="mh-brand">
           <BrandMark className="mark" />
-          <div className="titles">
-            <h1>
-              <span className="wordmark">ישראליטיקס</span>
-              {dataset && <InfoButton dataset={dataset} />}
-            </h1>
-            {dataset?.descriptionHe && <p>{dataset.descriptionHe}</p>}
-          </div>
+          <span className="wordmark">ישראליטיקס</span>
+          <span className="mh-tag">אטלס נתונים של ערי ישראל</span>
         </div>
-        <div className="topbar-actions">
+        <div className="mh-controls">
           {index.length > 0 && (
             <DatasetPicker index={index} selectedId={selectedId} onSelect={setSelectedId} />
           )}
@@ -65,11 +41,47 @@ export default function Home() {
         </div>
       </header>
 
+      <div className="workspace">
+        <aside className="sidebar">
+          {dataset && (
+            <>
+              <div className="ds-head">
+                <span className="kicker">מערך הנתונים</span>
+                <h1 className="ds-title">
+                  {dataset.titleHe}
+                  <InfoButton dataset={dataset} />
+                </h1>
+                {dataset.descriptionHe && <p className="ds-desc">{dataset.descriptionHe}</p>}
+              </div>
+              <Legend dataset={dataset} />
+            </>
+          )}
+        </aside>
+
+        <section className="mapwrap">
+          {geo ? (
+            <MapView geo={geo} border={border} water={water} dataset={dataset} step={step} />
+          ) : (
+            !error && (
+              <div className="center-msg">
+                <div className="card">
+                  <div className="spinner" />
+                  טוען מפה…
+                </div>
+              </div>
+            )
+          )}
+          {error && (
+            <div className="center-msg error">
+              <div className="card">שגיאה בטעינת הנתונים: {error}</div>
+            </div>
+          )}
+        </section>
+      </div>
+
       {dataset && (
         <Timeline timesteps={dataset.timesteps} step={step} onStep={setStep} />
       )}
-
-      {geo && dataset && <Legend dataset={dataset} />}
     </main>
   );
 }

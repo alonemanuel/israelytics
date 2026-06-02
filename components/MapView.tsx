@@ -329,7 +329,7 @@ export default function MapView({
     <div className="stage">
       <svg ref={svgRef} viewBox={`0 0 ${VB} ${VB}`} preserveAspectRatio="xMidYMid meet" />
       <div ref={labelLayerRef} className="labels-layer" />
-      <div className="zoomctl glass">
+      <div className="zoomctl">
         <button onClick={() => (svgRef.current as any)?.__zoom_by?.(1.8)} title="התקרבות" aria-label="התקרבות">+</button>
         <button onClick={() => (svgRef.current as any)?.__zoom_by?.(1 / 1.8)} title="התרחקות" aria-label="התרחקות">−</button>
         <div className="sep" />

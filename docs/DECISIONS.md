@@ -400,3 +400,23 @@ mobile, light + dark, both datasets).
 **Rejected:** A horizontal bottom timeline (cleaner in isolation but collides with the legend
 and needs a logic rewrite of the vertical scrubber); on-canvas brand text with no card (worse
 legibility where the map runs under the masthead).
+
+### 2026-06-02 — Full redesign: editorial "data broadsheet"
+**What:** Replaced the floating-glass-over-a-full-bleed-map paradigm with a flat, ruled Swiss
+editorial layout. `main` is a three-zone CSS grid separated by bold ink rules: a **masthead
+band** (wordmark + tag / picker + theme), a **workspace** (typographic sidebar on the right
+with the dataset title set huge in serif + the legend; line-drawn map on the left), and a
+**horizontal time-axis band** at the bottom (the old vertical scrubber, rewritten horizontal
+with monospace Knesset-number ticks and a serif "current election" readout). Removed all
+glass/blur/soft-shadow; surfaces are flat fills divided by rules and hairline borders. The map
+is now flat and line-drawn (faint land + crisp 1.25px coast, no drop-shadow). Numbers moved to
+a monospace stack for a tabular, technical feel. Near-square 4px corners.
+**Why:** Two rounds of refinement on the original paradigm still read as "the same website";
+the user asked for something *completely* new that looks VERY different. An editorial broadsheet
+is a genuinely different visual language — structure and typography carry the design instead of
+floating chrome — while still satisfying the standing constraints (monochrome UI, color only
+from the data, Hebrew-only, mobile-friendly). Iterated against headless screenshots
+(desktop + mobile, light + dark, both datasets).
+**Rejected:** More polish on the floating-glass layout (the user explicitly rejected this);
+a terminal/monospace "command center" (too cold for a public civic atlas); a scrollable
+data-story layout (loses the live map+timeline interaction that is the app's point).

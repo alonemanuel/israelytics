@@ -4,9 +4,10 @@ import { useCallback, useRef, useState } from "react";
 import type { Timestep } from "@/lib/types";
 
 /**
- * Vertical timeline scrubber. Newest timestep at the top, oldest at the bottom.
- * Drag the thumb, tap a tick, or use arrow keys. Built custom (not a native
- * range input) for a reliable, large touch target in RTL.
+ * Horizontal time axis (footer band). RTL: oldest at the inline-start (right),
+ * newest at the inline-end (left); the filled bar runs from the start to the
+ * thumb. Drag the thumb, tap a tick, or use arrow keys. Built custom (not a
+ * native range input) for a reliable, large touch target in RTL.
  */
 export default function Timeline({
   timesteps,
@@ -18,24 +19,24 @@ export default function Timeline({
   onStep: (i: number) => void;
 }) {
   const trackRef = useRef<HTMLDivElement>(null);
-  // `active` keeps the label visible during a touch drag (where :hover doesn't fire);
-  // it lingers briefly after release so the final value stays readable.
   const [active, setActive] = useState(false);
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  if (timesteps.length <= 1) return null; // snapshot dataset: no slider
+  if (timesteps.length <= 1) return null; // snapshot dataset: no axis
 
   const last = timesteps.length - 1;
   const ts = timesteps[step];
-  const topFrac = (last - step) / last; // 0 = top (newest), 1 = bottom (oldest)
+  // leftFrac: 0 = left edge (newest), 1 = right edge (oldest). RTL reads right
+  // (start/oldest) to left (end/newest).
+  const leftFrac = (i: number) => (last - i) / last;
 
-  const setFromClientY = useCallback(
-    (clientY: number) => {
+  const setFromClientX = useCallback(
+    (clientX: number) => {
       const el = trackRef.current;
       if (!el) return;
       const r = el.getBoundingClientRect();
-      const f = Math.min(1, Math.max(0, (clientY - r.top) / r.height));
-      onStep(Math.round((1 - f) * last)); // top -> newest
+      const f = Math.min(1, Math.max(0, (clientX - r.left) / r.width)); // 0 at left
+      onStep(Math.round((1 - f) * last)); // left -> newest
     },
     [last, onStep]
   );
@@ -44,30 +45,35 @@ export default function Timeline({
     (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
     if (idleTimer.current) clearTimeout(idleTimer.current);
     setActive(true);
-    setFromClientY(e.clientY);
+    setFromClientX(e.clientX);
   };
   const onPointerMove = (e: React.PointerEvent) => {
-    if (e.buttons !== 0) setFromClientY(e.clientY);
+    if (e.buttons !== 0) setFromClientX(e.clientX);
   };
   const onPointerUp = () => {
     if (idleTimer.current) clearTimeout(idleTimer.current);
-    idleTimer.current = setTimeout(() => setActive(false), 900);
+    idleTimer.current = setTimeout(() => setActive(false), 700);
   };
   const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "ArrowUp" || e.key === "ArrowRight") {
+    // RTL: ArrowLeft advances toward newer, ArrowRight toward older
+    if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
       e.preventDefault();
       onStep(Math.min(last, step + 1));
-    } else if (e.key === "ArrowDown" || e.key === "ArrowLeft") {
+    } else if (e.key === "ArrowDown" || e.key === "ArrowRight") {
       e.preventDefault();
       onStep(Math.max(0, step - 1));
     }
   };
 
   return (
-    <div className={`timeline glass${active ? " active" : ""}`}>
+    <div className={`timebar${active ? " active" : ""}`}>
+      <div className="tb-now">
+        <span className="tb-label">{ts.label}</span>
+        {ts.sub && <span className="tb-sub">{ts.sub}</span>}
+      </div>
       <div
         ref={trackRef}
-        className="track"
+        className="tb-track"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -81,22 +87,18 @@ export default function Timeline({
         aria-valuetext={`${ts.label}${ts.sub ? " · " + ts.sub : ""}`}
         onKeyDown={onKeyDown}
       >
-        <div className="ticks">
-          <div className="rail" style={{ top: 0, bottom: 0 }} />
-          <div className="fill" style={{ top: `${topFrac * 100}%`, bottom: 0 }} />
-          {timesteps.map((t, i) => (
-            <div
-              key={t.id}
-              className={`tick${i <= step ? " past" : ""}`}
-              style={{ position: "absolute", left: "50%", top: `${((last - i) / last) * 100}%`, transform: "translate(-50%, -50%)" }}
-            />
-          ))}
-          <div className="thumb" style={{ top: `${topFrac * 100}%` }} />
-          <div className="tlabel" style={{ top: `${topFrac * 100}%` }}>
-            <b>{ts.label}</b>
-            {ts.sub && <small>{ts.sub}</small>}
-          </div>
-        </div>
+        <div className="tb-rail" />
+        <div className="tb-fill" style={{ left: `${leftFrac(step) * 100}%`, right: 0 }} />
+        {timesteps.map((t, i) => {
+          const x = leftFrac(i) * 100;
+          return (
+            <div key={t.id} className="tb-stop" style={{ left: `${x}%` }}>
+              <span className={`tb-tick${i <= step ? " past" : ""}${i === step ? " on" : ""}`} />
+              <span className={`tb-num${i === step ? " on" : ""}`}>{t.id.replace(/^k/, "")}</span>
+            </div>
+          );
+        })}
+        <div className="tb-thumb" style={{ left: `${leftFrac(step) * 100}%` }} />
       </div>
     </div>
   );
