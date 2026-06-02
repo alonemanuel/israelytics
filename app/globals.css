@@ -5,50 +5,51 @@
    set pre-paint by the inline script in layout.tsx.
    ============================================================ */
 :root {
-  /* light (default) — warm paper, neutral "sea", restrained azure accent */
-  --bg-1: #f4f3ef;
-  --bg-2: #e7e6e0;
-  --ink: #1b1a17;
-  --muted: #6c6a63;
-  --surface: rgba(252, 251, 248, 0.82);
-  --surface-solid: #fcfbf8;
-  --surface-hover: rgba(255, 255, 255, 0.95);
-  --border: rgba(27, 26, 23, 0.1);
-  --border-strong: rgba(27, 26, 23, 0.16);
+  /* light (default) — warm gallery paper; the country floats on a calm field */
+  --bg-1: #f1eee6;
+  --bg-2: #e8e4da;
+  --ink: #1c1b16;
+  --muted: #79766d;
+  --surface: rgba(253, 252, 249, 0.74);
+  --surface-solid: #fdfcf9;
+  --surface-hover: rgba(255, 255, 255, 0.96);
+  --border: rgba(28, 27, 22, 0.07);
+  --border-strong: rgba(28, 27, 22, 0.13);
 
   /* UI is monochrome: the accent is ink, not a hue. All color on screen comes
      from the data. "soft" is a low-alpha ink for focus rings/active fills. */
-  --accent: #1b1a17;
+  --accent: #1c1b16;
   --accent-strong: #000000;
   --accent-contrast: #ffffff;
-  --accent-soft: rgba(27, 26, 23, 0.12);
+  --accent-soft: rgba(28, 27, 22, 0.10);
 
-  /* map: land sits over a darker sea so the country reads as a shape even where
-     data is missing; a firm coastline + shadow lifts it off the water */
-  --sea: #d6d5cb;
-  --land: #f1f0ea;
-  --map-stroke: rgba(27, 26, 23, 0.1);
-  --map-empty: #eae9e3;
-  --outline: rgba(27, 26, 23, 0.42);
-  --outline-shadow: rgba(27, 26, 23, 0.22);
+  /* map: a refined paper landmass lifted off a calm field with a soft shadow and
+     a hairline coast; no-data cities melt into the land so the country reads as
+     one crafted object and the data clusters are what catch the eye */
+  --sea: #e6e2d8;
+  --land: #f7f5ef;
+  --map-stroke: rgba(28, 27, 22, 0.07);
+  --map-empty: #efece3;
+  --outline: rgba(28, 27, 22, 0.26);
+  --outline-shadow: rgba(28, 27, 22, 0.13);
   /* inland water (Kinneret, Dead Sea): a neutral cool gray — reads as water
      against the warm land while staying achromatic, so the only color on the
      map is the data */
-  --water: #c7cdcd;
-  --water-stroke: rgba(60, 70, 72, 0.45);
-  --label-ink: #15140f;
-  --label-halo: rgba(248, 247, 243, 0.92);
+  --water: #ccd1cf;
+  --water-stroke: rgba(70, 80, 80, 0.36);
+  --label-ink: #1a1812;
+  --label-halo: rgba(247, 245, 239, 0.96);
 
-  --shadow-sm: 0 1px 3px rgba(27, 26, 23, 0.08), 0 2px 8px rgba(27, 26, 23, 0.06);
-  --shadow-md: 0 8px 30px rgba(27, 26, 23, 0.13);
-  --shadow-lg: 0 18px 50px rgba(27, 26, 23, 0.18);
+  --shadow-sm: 0 1px 2px rgba(28, 27, 22, 0.05), 0 2px 6px rgba(28, 27, 22, 0.05);
+  --shadow-md: 0 6px 28px rgba(28, 27, 22, 0.09), 0 2px 6px rgba(28, 27, 22, 0.05);
+  --shadow-lg: 0 22px 60px rgba(28, 27, 22, 0.16), 0 4px 12px rgba(28, 27, 22, 0.06);
 
-  --radius-sm: 10px;
-  --radius-md: 14px;
-  --radius-lg: 20px;
-  --blur: 16px;
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+  --blur: 22px;
 
-  --tip-bg: rgba(27, 26, 23, 0.94);
+  --tip-bg: rgba(24, 23, 19, 0.95);
   --tip-ink: #f8f7f3;
 
   /* type scale */
@@ -57,80 +58,80 @@
   --text-base: 15px;
   --text-lg:   18px;
   --text-xl:   22px;
-  --text-2xl:  28px;
+  --text-2xl:  27px;
   --text-3xl:  36px;
 }
 
-/* dark — neutral graphite (no navy/blue cast) */
+/* dark — deep neutral graphite (no navy/blue cast) */
 :root[data-theme="dark"] {
-  --bg-1: #16161a;
-  --bg-2: #101015;
-  --ink: #ecebe6;
-  --muted: #9b9a93;
-  --surface: rgba(34, 34, 40, 0.66);
-  --surface-solid: #1c1c21;
+  --bg-1: #141417;
+  --bg-2: #0d0d10;
+  --ink: #edece7;
+  --muted: #95938b;
+  --surface: rgba(30, 30, 35, 0.6);
+  --surface-solid: #1b1b20;
   --surface-hover: rgba(48, 48, 56, 0.85);
-  --border: rgba(255, 255, 255, 0.1);
-  --border-strong: rgba(255, 255, 255, 0.17);
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.15);
 
-  --accent: #ecebe6;
+  --accent: #edece7;
   --accent-strong: #ffffff;
-  --accent-contrast: #16161a;
-  --accent-soft: rgba(255, 255, 255, 0.16);
+  --accent-contrast: #141417;
+  --accent-soft: rgba(255, 255, 255, 0.14);
 
-  --sea: #0d0d10;
-  --land: #1a1a1f;
-  --map-stroke: rgba(0, 0, 0, 0.45);
-  --map-empty: #2c2c33;
-  --outline: rgba(255, 255, 255, 0.26);
-  --outline-shadow: rgba(0, 0, 0, 0.7);
-  --water: #2a3032;
-  --water-stroke: rgba(150, 165, 168, 0.42);
+  --sea: #111114;
+  --land: #202026;
+  --map-stroke: rgba(0, 0, 0, 0.4);
+  --map-empty: #2a2a31;
+  --outline: rgba(255, 255, 255, 0.2);
+  --outline-shadow: rgba(0, 0, 0, 0.65);
+  --water: #262c2e;
+  --water-stroke: rgba(150, 165, 168, 0.4);
   --label-ink: #f4f3ee;
-  --label-halo: rgba(8, 8, 10, 0.85);
+  --label-halo: rgba(8, 8, 10, 0.88);
 
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.55);
-  --shadow-md: 0 10px 36px rgba(0, 0, 0, 0.6);
-  --shadow-lg: 0 22px 60px rgba(0, 0, 0, 0.65);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 8px 30px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 26px 64px rgba(0, 0, 0, 0.62);
 
-  --tip-bg: rgba(10, 10, 12, 0.94);
+  --tip-bg: rgba(8, 8, 10, 0.95);
   --tip-ink: #f1f0ea;
 }
 
 /* follow the OS only when the user hasn't explicitly chosen light */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg-1: #16161a;
-    --bg-2: #101015;
-    --ink: #ecebe6;
-    --muted: #9b9a93;
-    --surface: rgba(34, 34, 40, 0.66);
-    --surface-solid: #1c1c21;
+    --bg-1: #141417;
+    --bg-2: #0d0d10;
+    --ink: #edece7;
+    --muted: #95938b;
+    --surface: rgba(30, 30, 35, 0.6);
+    --surface-solid: #1b1b20;
     --surface-hover: rgba(48, 48, 56, 0.85);
-    --border: rgba(255, 255, 255, 0.1);
-    --border-strong: rgba(255, 255, 255, 0.17);
+    --border: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.15);
 
-    --accent: #ecebe6;
+    --accent: #edece7;
     --accent-strong: #ffffff;
-    --accent-contrast: #16161a;
-    --accent-soft: rgba(255, 255, 255, 0.16);
+    --accent-contrast: #141417;
+    --accent-soft: rgba(255, 255, 255, 0.14);
 
-    --sea: #0d0d10;
-    --land: #1a1a1f;
-    --map-stroke: rgba(0, 0, 0, 0.45);
-    --map-empty: #2c2c33;
-    --outline: rgba(255, 255, 255, 0.26);
-    --outline-shadow: rgba(0, 0, 0, 0.7);
-    --water: #2a3032;
-    --water-stroke: rgba(150, 165, 168, 0.42);
+    --sea: #111114;
+    --land: #202026;
+    --map-stroke: rgba(0, 0, 0, 0.4);
+    --map-empty: #2a2a31;
+    --outline: rgba(255, 255, 255, 0.2);
+    --outline-shadow: rgba(0, 0, 0, 0.65);
+    --water: #262c2e;
+    --water-stroke: rgba(150, 165, 168, 0.4);
     --label-ink: #f4f3ee;
-    --label-halo: rgba(8, 8, 10, 0.85);
+    --label-halo: rgba(8, 8, 10, 0.88);
 
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.55);
-    --shadow-md: 0 10px 36px rgba(0, 0, 0, 0.6);
-    --shadow-lg: 0 22px 60px rgba(0, 0, 0, 0.65);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+    --shadow-md: 0 8px 30px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 26px 64px rgba(0, 0, 0, 0.62);
 
-    --tip-bg: rgba(10, 10, 12, 0.94);
+    --tip-bg: rgba(8, 8, 10, 0.95);
     --tip-ink: #f1f0ea;
   }
 }
@@ -139,8 +140,7 @@
 html, body { margin: 0; height: 100%; }
 html { -webkit-text-size-adjust: 100%; }
 body {
-  background: radial-gradient(140% 120% at 80% -10%, var(--bg-2), var(--bg-1) 60%);
-  background-attachment: fixed;
+  background: var(--bg-1);
   color: var(--ink);
   font-family: var(--font-sans), -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   font-size: var(--text-base);
@@ -159,27 +159,34 @@ main {
 /* shared glass surface */
 .glass {
   background: var(--surface);
-  -webkit-backdrop-filter: blur(var(--blur)) saturate(140%);
-  backdrop-filter: blur(var(--blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--blur)) saturate(125%);
+  backdrop-filter: blur(var(--blur)) saturate(125%);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-md);
 }
 
-/* ---------- top bar ---------- */
+/* ---------- top bar: two floating clusters, no full-width slab ---------- */
 .topbar {
   position: absolute;
-  top: max(10px, env(safe-area-inset-top));
-  left: 12px; right: 12px;
+  top: max(16px, env(safe-area-inset-top));
+  left: 16px; right: 16px;
   z-index: 30;
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; align-items: flex-start; justify-content: space-between;
   gap: 12px;
-  padding: 8px 12px;
-  border-radius: var(--radius-lg);
+  pointer-events: none; /* let the empty middle pass clicks to the map */
 }
-.brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.topbar > * { pointer-events: auto; }
+
+/* brand masthead card — hugs its content, top-start (right in RTL) */
+.brand {
+  display: flex; align-items: center; gap: 12px; min-width: 0;
+  padding: 10px 16px 10px 13px;
+  border-radius: var(--radius-lg);
+  max-width: min(60vw, 480px);
+}
 .brand .mark {
   flex: none;
-  width: 32px; height: 32px; display: block;
+  width: 30px; height: 30px; display: block;
   color: var(--accent);
   user-select: none; -webkit-user-select: none;
 }
@@ -187,18 +194,18 @@ main {
 .brand h1 {
   margin: 0;
   display: flex; align-items: center;
-  line-height: 1.1; white-space: nowrap;
+  line-height: 1; white-space: nowrap;
 }
 .brand .wordmark {
   font-family: var(--font-serif), Georgia, serif;
-  font-size: var(--text-xl); font-weight: 700; letter-spacing: -0.2px;
+  font-size: var(--text-2xl); font-weight: 700; letter-spacing: -0.5px;
 }
 .brand p {
-  margin: 2px 0 0;
+  margin: 4px 0 0;
   font-family: var(--font-sans), system-ui, sans-serif;
   font-size: var(--text-sm); font-weight: 400;
-  color: var(--muted); line-height: 1.3;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 48ch;
+  color: var(--muted); line-height: 1.35;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
 /* actions cluster at the inline-end of the top bar */
@@ -206,12 +213,15 @@ main {
 
 /* ---------- theme toggle ---------- */
 .theme-toggle {
-  flex: none; width: 38px; height: 38px; border-radius: 999px;
-  border: 1px solid var(--border-strong); background: var(--surface-solid);
+  flex: none; width: 42px; height: 42px; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--surface);
+  -webkit-backdrop-filter: blur(var(--blur)) saturate(125%);
+  backdrop-filter: blur(var(--blur)) saturate(125%);
+  box-shadow: var(--shadow-md);
   color: var(--ink); cursor: pointer; display: grid; place-items: center;
-  transition: border-color .15s, color .15s, background .15s, transform .15s;
+  transition: color .15s, transform .15s, box-shadow .15s;
 }
-.theme-toggle:hover { border-color: var(--accent); color: var(--accent); }
+.theme-toggle:hover { color: var(--accent); box-shadow: var(--shadow-lg); }
 .theme-toggle:active { transform: scale(0.92); }
 .theme-toggle:focus-visible {
   outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft);
@@ -222,17 +232,20 @@ main {
 .picker { position: relative; flex: none; }
 .picker select {
   appearance: none; -webkit-appearance: none;
-  background: var(--surface-solid);
+  background: var(--surface);
+  -webkit-backdrop-filter: blur(var(--blur)) saturate(125%);
+  backdrop-filter: blur(var(--blur)) saturate(125%);
+  box-shadow: var(--shadow-md);
   color: var(--ink);
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--border);
   border-radius: 999px;
-  padding-block: 9px; padding-inline-start: 16px; padding-inline-end: 34px;
+  padding-block: 11px; padding-inline-start: 18px; padding-inline-end: 36px;
   font-family: var(--font-sans), system-ui, sans-serif;
   font-size: var(--text-sm); font-weight: 600;
   cursor: pointer; max-width: 52vw; text-overflow: ellipsis;
-  transition: border-color .15s, box-shadow .15s;
+  transition: box-shadow .15s;
 }
-.picker select:hover { border-color: var(--accent); }
+.picker select:hover { box-shadow: var(--shadow-lg); }
 .picker select:focus-visible {
   outline: none; border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
@@ -248,16 +261,18 @@ main {
 /* ---------- map stage ---------- */
 .stage {
   position: absolute; inset: 0; z-index: 0;
-  background: radial-gradient(135% 115% at 75% -8%, var(--bg-1), var(--sea) 62%);
+  background:
+    radial-gradient(120% 90% at 50% 38%, var(--bg-1), var(--sea) 78%);
 }
 .stage svg { width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
 .stage svg:active { cursor: grabbing; }
-/* national silhouette: filled land + soft coastline + drop-shadow lift */
+/* national silhouette: filled land lifted off the field with a soft, diffuse
+   shadow and a hairline coast — a crafted object, not a hard-edged blob */
 .landmass {
   fill: var(--land); fill-rule: evenodd; /* evenodd so the Kinneret hole cuts through */
-  stroke: var(--outline); stroke-width: 1.5px; stroke-linejoin: round;
+  stroke: var(--outline); stroke-width: 1px; stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
-  filter: drop-shadow(0 4px 12px var(--outline-shadow));
+  filter: drop-shadow(0 14px 34px var(--outline-shadow));
 }
 /* inland lakes (Kinneret, Dead Sea) — own layer over the land + city fills */
 .lake {
@@ -266,15 +281,15 @@ main {
   vector-effect: non-scaling-stroke; pointer-events: none;
 }
 .region {
-  stroke: var(--map-stroke); stroke-width: 0.6px;
+  stroke: var(--map-stroke); stroke-width: 0.4px;
   vector-effect: non-scaling-stroke; transition: fill .25s ease;
 }
 .dot {
-  stroke: var(--map-stroke); stroke-width: 0.5px;
+  stroke: var(--map-stroke); stroke-width: 0.4px;
   vector-effect: non-scaling-stroke; transition: fill .25s ease;
 }
-.region:hover, .dot:hover { stroke: var(--ink); stroke-width: 1.6px; }
-.region.sel, .dot.sel { stroke: var(--accent-strong); stroke-width: 2px; }
+.region:hover, .dot:hover { stroke: var(--ink); stroke-width: 1.2px; }
+.region.sel, .dot.sel { stroke: var(--accent-strong); stroke-width: 1.8px; }
 /* city-name labels — HTML overlay positioned in screen px by MapView, so text is
    crisp and constant-sized at any zoom (revealed progressively by weight) */
 .labels-layer {
@@ -284,12 +299,11 @@ main {
 .labels-layer .city-label {
   position: absolute; top: 0; left: 0; will-change: transform;
   font-family: var(--font-sans), system-ui, sans-serif;
-  font-size: var(--text-sm); font-weight: 600; letter-spacing: 0; line-height: 1;
+  font-size: var(--text-sm); font-weight: 600; letter-spacing: -0.1px; line-height: 1;
   white-space: nowrap; color: var(--label-ink);
   text-shadow:
-    -1px -1px 0 var(--label-halo), 1px -1px 0 var(--label-halo),
-    -1px 1px 0 var(--label-halo), 1px 1px 0 var(--label-halo),
-    0 0 3px var(--label-halo);
+    0 0 2px var(--label-halo), 0 0 4px var(--label-halo),
+    0 0 7px var(--label-halo), 0 1px 2px var(--label-halo);
 }
 @media (max-width: 560px) { .labels-layer .city-label { font-size: var(--text-xs); } }
 
@@ -302,10 +316,10 @@ main {
   padding: 4px;
 }
 .zoomctl button {
-  width: 42px; height: 42px; border: none; cursor: pointer;
+  width: 40px; height: 40px; border: none; cursor: pointer;
   background: transparent; color: var(--ink);
-  font-size: 20px; font-weight: 600; line-height: 1;
-  display: grid; place-items: center; border-radius: 10px;
+  font-size: 19px; font-weight: 500; line-height: 1;
+  display: grid; place-items: center; border-radius: var(--radius-sm);
   transition: background .15s;
 }
 .zoomctl button:active { background: var(--accent-soft); }
@@ -316,9 +330,10 @@ main {
 .tooltip {
   position: absolute; z-index: 40; pointer-events: none;
   background: var(--tip-bg); color: var(--tip-ink);
-  padding: 9px 13px; border-radius: 10px; font-size: var(--text-sm); line-height: 1.4;
-  opacity: 0; transform: translateY(2px);
-  transition: opacity .12s, transform .12s; white-space: nowrap;
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  padding: 10px 14px; border-radius: var(--radius-sm); font-size: var(--text-sm); line-height: 1.4;
+  opacity: 0; transform: translateY(3px);
+  transition: opacity .14s, transform .14s; white-space: nowrap;
   box-shadow: var(--shadow-lg);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
@@ -354,30 +369,32 @@ main {
 
 /* ---------- info button + panel ---------- */
 .info-btn {
-  margin-inline-start: 8px; vertical-align: middle;
-  width: 22px; height: 22px; border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  background: rgba(255, 255, 255, 0.06); color: inherit;
-  font-size: 13px; line-height: 1; cursor: pointer; opacity: 0.7;
-  transition: opacity .12s, background .12s;
+  margin-inline-start: 9px; vertical-align: middle;
+  width: 21px; height: 21px; border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  background: transparent; color: var(--muted);
+  font-size: 12px; line-height: 1; cursor: pointer;
+  display: inline-grid; place-items: center;
+  transition: color .12s, border-color .12s, background .12s;
 }
-.info-btn:hover { opacity: 1; background: rgba(255, 255, 255, 0.14); }
+.info-btn:hover { color: var(--accent); border-color: var(--accent); }
 .info-scrim {
   position: fixed; inset: 0; z-index: 60;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(8, 8, 10, 0.42);
+  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
 }
 .info-panel {
   position: fixed; z-index: 61; top: 50%; right: 50%;
   transform: translate(50%, -50%);
-  width: min(420px, 90vw); max-height: 80vh; overflow-y: auto;
-  padding: 18px 20px; border-radius: var(--radius-md);
+  width: min(440px, 90vw); max-height: 80vh; overflow-y: auto;
+  padding: 24px 26px; border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
 }
 .info-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .info-head h2 {
   font-family: var(--font-serif), Georgia, serif;
-  font-size: var(--text-xl); font-weight: 700; margin: 0;
-  letter-spacing: 0; line-height: 1.2;
+  font-size: var(--text-2xl); font-weight: 700; margin: 0;
+  letter-spacing: -0.3px; line-height: 1.15;
 }
 .info-close {
   background: none; border: none; color: inherit; cursor: pointer;
@@ -397,85 +414,92 @@ main {
 /* ---------- legend ---------- */
 .legend {
   position: absolute; z-index: 20;
-  bottom: max(18px, env(safe-area-inset-bottom)); right: 14px;
-  padding: 11px 13px; border-radius: var(--radius-md);
-  font-size: var(--text-sm); max-width: min(280px, 70vw);
+  bottom: max(20px, env(safe-area-inset-bottom)); right: 16px;
+  padding: 14px 16px; border-radius: var(--radius-md);
+  font-size: var(--text-sm); max-width: min(300px, 76vw);
 }
 .legend .ltitle {
-  font-family: var(--font-sans), system-ui, sans-serif;
-  font-weight: 700; font-size: var(--text-sm); margin-bottom: 7px; letter-spacing: 0;
+  font-family: var(--font-serif), Georgia, serif;
+  font-weight: 700; font-size: var(--text-lg); margin-bottom: 11px;
+  letter-spacing: -0.2px; line-height: 1.15; color: var(--ink);
 }
-.legend .bar { height: 10px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--border); }
+.legend .bar { height: 9px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--border); }
 .legend .ends {
   display: flex; justify-content: space-between; color: var(--muted);
-  margin-top: 5px; font-variant-numeric: tabular-nums; font-weight: 600;
+  margin-top: 7px; font-variant-numeric: tabular-nums; font-weight: 600; font-size: var(--text-xs);
 }
-.legend .nodata { margin-top: 8px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.legend .nodata {
+  margin-top: 11px; padding-top: 10px; border-top: 1px solid var(--border);
+  color: var(--muted); display: flex; align-items: center; gap: 7px; font-size: var(--text-xs);
+}
 .swatch { display: inline-block; width: 11px; height: 11px; border-radius: 3px; box-shadow: inset 0 0 0 1px var(--border); }
 
 /* ---------- vertical timeline ---------- */
 .timeline {
   position: absolute; z-index: 25;
   top: 50%; transform: translateY(-50%);
-  right: 14px;
+  right: 16px;
   display: flex; align-items: stretch;
-  padding: 14px 10px; border-radius: var(--radius-lg);
+  padding: 18px 12px; border-radius: var(--radius-lg);
   touch-action: none; user-select: none; -webkit-user-select: none;
 }
 .timeline .track {
-  position: relative; width: 26px;
+  position: relative; width: 22px;
   display: flex; flex-direction: column; align-items: center;
   cursor: pointer;
 }
 .timeline .rail {
-  position: absolute; top: 6px; bottom: 6px; left: 50%;
-  width: 4px; transform: translateX(-50%);
+  position: absolute; top: 4px; bottom: 4px; left: 50%;
+  width: 2px; transform: translateX(-50%);
   border-radius: 999px; background: var(--border-strong);
 }
 .timeline .fill {
-  position: absolute; left: 50%; width: 4px; transform: translateX(-50%);
-  border-radius: 999px; background: linear-gradient(var(--accent), var(--accent-strong));
+  position: absolute; left: 50%; width: 2px; transform: translateX(-50%);
+  border-radius: 999px; background: var(--accent);
 }
 .timeline .ticks {
   position: relative; flex: 1; display: flex; flex-direction: column;
-  justify-content: space-between; align-items: center; min-height: 180px;
+  justify-content: space-between; align-items: center; min-height: 200px;
 }
 .timeline .tick {
-  width: 9px; height: 9px; border-radius: 50%;
-  background: var(--surface-solid); box-shadow: inset 0 0 0 2px var(--border-strong);
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--surface-solid); box-shadow: inset 0 0 0 1.5px var(--border-strong);
   z-index: 1; transition: transform .12s;
 }
-.timeline .tick.past { box-shadow: inset 0 0 0 2px var(--accent); background: var(--accent); }
-/* sized to sit cleanly within the 26px track: a compact ink disc with a thin
-   surface ring (no oversized glow halo, which used to overflow the rail) */
+.timeline .tick.past { box-shadow: none; background: var(--accent); }
+/* a refined ink disc with a clean surface ring, riding the rail */
 .timeline .thumb {
-  position: absolute; left: 50%; width: 15px; height: 15px;
-  margin-left: -7.5px; margin-top: -7.5px; border-radius: 50%;
-  background: var(--accent); border: 2.5px solid var(--surface-solid);
-  box-shadow: var(--shadow-sm), 0 0 0 1px var(--border-strong);
+  position: absolute; left: 50%; width: 16px; height: 16px;
+  margin-left: -8px; margin-top: -8px; border-radius: 50%;
+  background: var(--accent); border: 3px solid var(--surface-solid);
+  box-shadow: var(--shadow-md);
   z-index: 2; cursor: grab;
-  transition: transform .12s ease;
+  transition: transform .14s ease;
 }
 .timeline .thumb:active { cursor: grabbing; }
 .timeline:hover .thumb,
 .timeline:focus-within .thumb,
-.timeline.active .thumb { transform: scale(1.18); }
+.timeline.active .thumb { transform: scale(1.12); }
+/* the active timestep label rides the thumb and stays visible — a quiet,
+   always-on readout of where you are in time */
 .timeline .tlabel {
-  position: absolute; right: 100%; margin-right: 8px;
+  position: absolute; right: 100%; margin-right: 12px;
   white-space: nowrap; pointer-events: none;
-  background: var(--surface-solid); color: var(--ink);
-  border: 1px solid var(--border);
-  padding: 5px 10px; border-radius: 999px;
-  font-family: var(--font-sans), system-ui, sans-serif;
-  font-size: var(--text-sm); font-weight: 700; box-shadow: var(--shadow-sm);
-  transform: translateY(-50%) translateX(6px);
-  opacity: 0; transition: opacity .18s ease, transform .18s ease;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 1px;
+  transform: translateY(-50%);
+  transition: opacity .18s ease;
 }
-.timeline .tlabel small { color: var(--muted); font-weight: 400; margin-right: 4px; }
-/* the label is a transient affordance: show only while the slider is in use */
-.timeline:hover .tlabel,
-.timeline:focus-within .tlabel,
-.timeline.active .tlabel { opacity: 1; transform: translateY(-50%) translateX(0); }
+.timeline .tlabel b {
+  font-family: var(--font-serif), Georgia, serif;
+  font-size: var(--text-base); font-weight: 700; color: var(--ink);
+  letter-spacing: -0.2px; line-height: 1.1;
+  text-shadow: 0 0 6px var(--label-halo), 0 0 3px var(--label-halo);
+}
+.timeline .tlabel small {
+  color: var(--muted); font-weight: 600; font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 6px var(--label-halo), 0 0 3px var(--label-halo);
+}
 
 /* ---------- states ---------- */
 .center-msg {

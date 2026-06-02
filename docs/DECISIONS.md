@@ -379,3 +379,24 @@ analytics, and maximum mobile screen space. A vector mark scales crisply at the 
 size where the wordmark is dropped.
 **Rejected:** A literal Israel-silhouette icon (illegible at 26–32px and hard to read as
 "analytics"); keeping the wordmark on mobile (eats the bar that the dataset name needs).
+
+### 2026-06-02 — Visual redesign: editorial "atlas" composition
+**What:** A ground-up restyle for a calmer, more designed feel. (1) Dropped the full-width
+top-bar slab; the brand is now a hugs-its-content **masthead card** (vector mark + serif
+wordmark + dataset caption) with the controls as separate floating glass pills — corner-anchored
+clusters over a full-bleed map. (2) Map: replaced the hard drop-shadow + 1.5px coast with a
+soft, diffuse lift + 1px hairline coast on a calm radial field; thinner region strokes; no-data
+tone pulled close to the land so data clusters read first. (3) Timeline: thin rail + small
+ticks + a refined thumb, with the active election shown as an always-on serif year readout that
+rides the thumb (was hover-only). (4) Legend: serif title, hairline-separated "no data" row.
+(5) Softer, larger-radius tokens (radii 12/16/22, blur 22px, diffuse shadows); deeper, calmer
+light/dark palettes. (6) Hebraized the election date subs (e.g. "Nov 2022" → "נובמבר 2022") so
+nothing in the UI is English.
+**Why:** User feedback that the prior pass was "still very ugly" and a request to "make it
+beautiful." The fixes target the specific ugliness: a heavy chrome slab, a hard-edged map, and
+plain edge widgets — replaced with restrained editorial typography, soft depth, and an always-on
+sense of where you are in time. Verified by iterating against headless screenshots (desktop +
+mobile, light + dark, both datasets).
+**Rejected:** A horizontal bottom timeline (cleaner in isolation but collides with the legend
+and needs a logic rewrite of the vertical scrubber); on-canvas brand text with no card (worse
+legibility where the map runs under the masthead).

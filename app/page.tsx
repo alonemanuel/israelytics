@@ -46,8 +46,8 @@ export default function Home() {
         </div>
       )}
 
-      <header className="topbar glass">
-        <div className="brand">
+      <header className="topbar">
+        <div className="brand glass">
           <BrandMark className="mark" />
           <div className="titles">
             <h1>

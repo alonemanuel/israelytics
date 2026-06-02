@@ -93,7 +93,8 @@ export default function Timeline({
           ))}
           <div className="thumb" style={{ top: `${topFrac * 100}%` }} />
           <div className="tlabel" style={{ top: `${topFrac * 100}%` }}>
-            {ts.label} {ts.sub && <small>{ts.sub}</small>}
+            <b>{ts.label}</b>
+            {ts.sub && <small>{ts.sub}</small>}
           </div>
         </div>
       </div>

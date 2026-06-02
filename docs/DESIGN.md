@@ -57,10 +57,12 @@ See the `:root` block in `app/globals.css` for the full list; key tokens:
 | `--bg-2` | `#e7e6e0` | `#101015` | gradient second stop |
 | `--ink` | `#1b1a17` | `#ecebe6` | primary text |
 | `--muted` | `#6c6a63` | `#9b9a93` | secondary text, legend ends |
-| `--surface` | `rgba(252,251,248,.82)` | `rgba(34,34,40,.66)` | glass panels |
-| `--accent` | `#1b1a17` | `#ecebe6` | brand mark, active states (ink, not a hue) |
+| `--surface` | `rgba(253,252,249,.74)` | `rgba(30,30,35,.6)` | glass panels |
+| `--accent` | `#1c1b16` | `#edece7` | brand mark, active states (ink, not a hue) |
 | `--accent-strong` | `#000000` | `#ffffff` | selected borders |
-| `--water` | `#c7cdcd` | `#2a3032` | inland lakes (Kinneret, Dead Sea) — neutral gray |
+| `--land` | `#f7f5ef` | `#202026` | the landmass fill |
+| `--sea` | `#e6e2d8` | `#111114` | the calm field the country floats on |
+| `--water` | `#ccd1cf` | `#262c2e` | inland lakes (Kinneret, Dead Sea) — neutral gray |
 
 ### Monochrome shell — color only from the data
 
@@ -78,35 +80,51 @@ at the low pole, a warm neutral midpoint, **earth-orange** at the high pole. Div
 mirror the poles (`i.l` purple, `i.r` orange). Sequential datasets pick a single d3 ramp
 (e.g. `haredi-vote` → `Purples`).
 
+## Layout — floating clusters, no chrome slab
+
+The map is full-bleed; everything else floats over it as small, self-contained glass
+clusters anchored to the corners — there is no full-width bar. The top row holds two
+clusters: the **brand masthead card** (icon + serif wordmark + dataset caption) at the inline
+start, and the **controls** (picker + theme toggle) at the inline end. The header element
+itself is `pointer-events: none` so the empty middle passes clicks through to the map; each
+cluster re-enables pointer events. Legend sits bottom-end, the timeline mid-end, zoom
+bottom-start. Keep new UI in this corner-anchored, hugs-its-content idiom.
+
 ## Component surface — glass panels
 
-Floating panels (topbar, legend, timeline, info panel, tooltip) use the `.glass` utility class:
+Floating elements (brand, picker, theme, legend, timeline, info panel, tooltip, zoom) use the
+`.glass` utility class (or, for the picker/theme, the same translucent surface + blur inline):
 
 ```css
 .glass {
   background: var(--surface);
-  backdrop-filter: blur(var(--blur)) saturate(140%);
+  backdrop-filter: blur(var(--blur)) saturate(125%);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-md);
 }
 ```
 
-`--blur` is `16px`. Don't add `backdrop-filter` outside `.glass` — it creates new stacking contexts and is expensive.
+`--blur` is `22px`. Shadows are soft and diffuse (large blur, low alpha) for a quiet, lifted
+feel — see the `--shadow-*` tokens; don't use hard, tight shadows.
 
 ## Spacing & radius
 
 ```
---radius-sm: 10px   pill sub-elements (timeline thumb, legend bar)
---radius-md: 14px   legend, info panel, tooltip, zoom controls
---radius-lg: 20px   topbar, timeline container
+--radius-sm: 12px   tooltip, zoom buttons, small chips
+--radius-md: 16px   legend, info-head
+--radius-lg: 22px   brand masthead, timeline, info panel
 ```
 
-No magic numbers: use the radius tokens and the `env(safe-area-inset-*)` wrappers already on bottom-anchored elements.
+No magic numbers: use the radius tokens and the `env(safe-area-inset-*)` wrappers already on
+bottom-anchored elements.
 
 ## Map layer
 
 - Projection: planar `d3.geoIdentity` with longitude×cos(lat) correction (not Mercator — see `docs/DECISIONS.md`).
-- Land fill: `--land`; sea fill: `--sea`; city regions: `--map-empty` when no data.
+- Land fill: `--land`; sea/field: `--sea`; city regions: `--map-empty` when no data. The
+  landmass is *lifted off the field* with a soft, diffuse drop-shadow and a 1px hairline coast
+  (`--outline`), so the country reads as a crafted object; no-data cities sit close to the land
+  tone so the data clusters are what catch the eye.
 - Inland water (Kinneret, Dead Sea) is its own layer drawn over the land + city fills in `--water` (a neutral cool gray — achromatic, so the only color on the map is the data) with a `--water-stroke` shoreline. Source: `public/data/water.json`. The coastline is clipped flush to the coastal cities and the Kinneret is cut out of the landmass — see `docs/DECISIONS.md`.
 - City labels: HTML overlay (not SVG text), positioned in screen-px by `MapView` so they stay crisp at any zoom.
 - Dot radius is driven by `weight` from `geo.json` (≈ electorate size), not the dataset value.
