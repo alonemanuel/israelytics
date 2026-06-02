@@ -5,6 +5,18 @@ import type { ColorSpec } from "./types";
 // light/dark instead of being a fixed blue-gray. Works as an SVG fill and in CSS.
 export const NO_DATA_COLOR = "var(--map-empty)";
 
+// Earth diverging scheme: earth-purple (t=0) -> warm neutral -> earth-orange
+// (t=1). The site's UI is monochrome, so the data palette carries all the color;
+// these two earthy poles are the project's signature divergence. Orientation
+// (purple low / orange high) is fixed here so a dataset just names the scheme.
+const earthDiv = d3.interpolateRgbBasis([
+  "#4a2a73", // earth purple (strong)
+  "#7d6aa3",
+  "#efe9df", // warm neutral midpoint
+  "#dd9a55",
+  "#b8470c", // earth orange (strong)
+]);
+
 // d3 scheme name -> interpolator. Extend as new datasets need new schemes.
 const INTERPOLATORS: Record<string, (t: number) => string> = {
   Purples: d3.interpolatePurples,
@@ -16,6 +28,7 @@ const INTERPOLATORS: Record<string, (t: number) => string> = {
   RdBu: d3.interpolateRdBu,
   RdYlBu: d3.interpolateRdYlBu,
   BrBG: d3.interpolateBrBG,
+  EarthDiv: earthDiv,
 };
 
 /**

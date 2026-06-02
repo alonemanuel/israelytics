@@ -339,3 +339,43 @@ southern borders (no cities sit right at those) and distort the silhouette.
 **Note:** `border.json` carries the Kinneret as a hole; `.landmass` uses `fill-rule: evenodd`
 so the hole cuts through regardless of ring winding. Verified with the real d3 projection
 (geoIdentity + cos-lat) rasterized headless, since a browser couldn't be installed here.
+
+### 2026-06-02 — Monochrome UI, color only from the data
+**What:** The entire chrome (top bar, picker, timeline, legend, zoom, tooltip frame) is
+achromatic — black/white/grays. The `--accent`/`--accent-strong` tokens, which used to be
+orange, are now plain ink (near-black in light, near-white in dark), so brand mark, focus
+rings, active states, selected outlines and the timeline fill all read as ink. Inland water
+(Kinneret/Dead Sea) was retinted from teal to a neutral cool gray for the same reason. The
+*only* color on screen now comes from the data layer.
+**Why:** User direction — "black/white style; the color will come from the data." A neutral
+shell makes the choropleth the unambiguous focus and lets any future dataset's palette stand
+out without competing with a chromatic UI.
+**Rejected:** Keeping the orange accent (the previous "neutral-first" compromise) — still a
+second hue competing with the map; a colored-per-dataset accent — ties chrome to data and
+muddies the "color = data" rule.
+
+### 2026-06-02 — Data divergence palette: EarthDiv (earth-purple ↔ earth-orange)
+**What:** Replaced the right-left dataset's `RdBu` (red↔blue) with a custom `EarthDiv`
+interpolator in `lib/colorScale.ts`: earth-purple at the low pole (left, −1), a warm neutral
+at the midpoint, earth-orange at the high pole (right, +1). Tooltip breakdown bars and the
+Hebrew copy (`כתום`/`סגול`) were updated to match; sequential `haredi-vote` stays on `Purples`
+(earth purple, one of the two poles).
+**Why:** User direction — data should be vivid and specifically "earth orange and earth
+purple." Orange-vs-purple also avoids the red/blue political-color baggage while orange keeps
+a loose cultural tie to the Israeli right. Orientation (purple low / orange high) is fixed in
+the interpolator so a dataset only names the scheme.
+**Rejected:** d3's stock `interpolatePuOr` — its orientation is orange-low/purple-high and its
+browns are muddier than the chosen earth tones.
+
+### 2026-06-02 — Brand: vector mark + Hebrew logotype, Hebrew-only UI
+**What:** The "י" glyph brand mark became a vectoric SVG (`components/BrandMark.tsx`): a rising
+analytics trend line whose peak is a Star of David — "Israel + analytics" in one monochrome
+`currentColor` glyph. The visible wordmark changed from English "Israelytics" to Hebrew
+"ישראליטיקס" (serif/Hadassah), and the document title/description are Hebrew too. On mobile the
+wordmark hides, leaving the icon + ⓘ, and the top bar tightens its insets/padding to hand the
+map as much screen as possible.
+**Why:** User direction — "nothing in English," a different/vectoric icon tied to Israel +
+analytics, and maximum mobile screen space. A vector mark scales crisply at the small mobile
+size where the wordmark is dropped.
+**Rejected:** A literal Israel-silhouette icon (illegible at 26–32px and hard to read as
+"analytics"); keeping the wordmark on mobile (eats the bar that the dataset name needs).

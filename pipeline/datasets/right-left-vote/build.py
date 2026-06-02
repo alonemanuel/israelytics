@@ -35,15 +35,15 @@ META = {
     "title": "Right vs Left vote",
     "titleHe": "ימין מול שמאל",
     "description": ("Signed margin between the right-wing and left-wing blocs as a "
-                    "share of their combined vote: +1 all-right (blue), -1 all-left (red)."),
+                    "share of their combined vote: +1 all-right (orange), -1 all-left (purple)."),
     "descriptionHe": ("המרווח בין גוש הימין לגוש השמאל מתוך סך קולות שני הגושים: "
-                      "‎1+‎ כולו ימין (כחול), ‎1-‎ כולו שמאל (אדום)."),
+                      "‎1+‎ כולו ימין (כתום), ‎1-‎ כולו שמאל (סגול)."),
     # Reader-facing methodology, shown behind the ⓘ button. Markdown-lite
     # (**bold**, blank-line paragraphs, "- " bullets).
     "infoHe": (
         "**מה רואים כאן?**\n"
         "לכל יישוב מוצג המרווח בין **גוש הימין** ל**גוש השמאל** בכל בחירות לכנסת, "
-        "מתוך סך הקולות לשני הגושים: ‎1+‎ (כחול) = כל הקולות לימין, ‎1-‎ (אדום) = כל "
+        "מתוך סך הקולות לשני הגושים: ‎1+‎ (כתום) = כל הקולות לימין, ‎1-‎ (סגול) = כל "
         "הקולות לשמאל, ‎0‎ = תיקו.\n\n"
         "**איך מסווגים את המפלגות?**\n"
         "הסיווג אידאולוגי, לפי בחירות (אותה אות מייצגת מפלגות שונות בשנים שונות):\n"
@@ -55,8 +55,9 @@ META = {
         "ריחוף על יישוב מציג את פירוט ההצבעה בפועל."
     ),
     "unit": "margin",
-    # Diverging: red (left) at -1, white at 0, blue (right) at +1.
-    "colorScale": {"type": "diverging", "scheme": "RdBu", "domain": [-1, 1],
+    # Diverging: earth-purple (left) at -1, warm neutral at 0, earth-orange
+    # (right) at +1. EarthDiv is defined in lib/colorScale.ts.
+    "colorScale": {"type": "diverging", "scheme": "EarthDiv", "domain": [-1, 1],
                    "midpoint": 0},
     "timesteps": [{"id": f"k{n}", "label": f"הכנסת ה-{n}", "sub": d} for n, d in ELECTIONS],
 }

@@ -8,6 +8,7 @@ import Legend from "@/components/Legend";
 import MapView from "@/components/MapView";
 import InfoButton from "@/components/InfoButton";
 import ThemeToggle from "@/components/ThemeToggle";
+import BrandMark from "@/components/BrandMark";
 
 export default function Home() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -47,10 +48,10 @@ export default function Home() {
 
       <header className="topbar glass">
         <div className="brand">
-          <div className="mark">י</div>
+          <BrandMark className="mark" />
           <div className="titles">
             <h1>
-              Israelytics
+              <span className="wordmark">ישראליטיקס</span>
               {dataset && <InfoButton dataset={dataset} />}
             </h1>
             {dataset?.descriptionHe && <p>{dataset.descriptionHe}</p>}

@@ -16,10 +16,12 @@
   --border: rgba(27, 26, 23, 0.1);
   --border-strong: rgba(27, 26, 23, 0.16);
 
-  --accent: #c2410c;
-  --accent-strong: #9a3412;
+  /* UI is monochrome: the accent is ink, not a hue. All color on screen comes
+     from the data. "soft" is a low-alpha ink for focus rings/active fills. */
+  --accent: #1b1a17;
+  --accent-strong: #000000;
   --accent-contrast: #ffffff;
-  --accent-soft: rgba(194, 65, 12, 0.13);
+  --accent-soft: rgba(27, 26, 23, 0.12);
 
   /* map: land sits over a darker sea so the country reads as a shape even where
      data is missing; a firm coastline + shadow lifts it off the water */
@@ -29,10 +31,11 @@
   --map-empty: #eae9e3;
   --outline: rgba(27, 26, 23, 0.42);
   --outline-shadow: rgba(27, 26, 23, 0.22);
-  /* inland water (Kinneret, Dead Sea): a soft, slightly muted azure — clearly
-     water against the warm land, without shouting over the data colors */
-  --water: #8fc3d0;
-  --water-stroke: rgba(34, 96, 114, 0.55);
+  /* inland water (Kinneret, Dead Sea): a neutral cool gray — reads as water
+     against the warm land while staying achromatic, so the only color on the
+     map is the data */
+  --water: #c7cdcd;
+  --water-stroke: rgba(60, 70, 72, 0.45);
   --label-ink: #15140f;
   --label-halo: rgba(248, 247, 243, 0.92);
 
@@ -70,10 +73,10 @@
   --border: rgba(255, 255, 255, 0.1);
   --border-strong: rgba(255, 255, 255, 0.17);
 
-  --accent: #f97316;
-  --accent-strong: #fb923c;
-  --accent-contrast: #1a0e03;
-  --accent-soft: rgba(249, 115, 22, 0.2);
+  --accent: #ecebe6;
+  --accent-strong: #ffffff;
+  --accent-contrast: #16161a;
+  --accent-soft: rgba(255, 255, 255, 0.16);
 
   --sea: #0d0d10;
   --land: #1a1a1f;
@@ -81,8 +84,8 @@
   --map-empty: #2c2c33;
   --outline: rgba(255, 255, 255, 0.26);
   --outline-shadow: rgba(0, 0, 0, 0.7);
-  --water: #1d4f5e;
-  --water-stroke: rgba(122, 198, 214, 0.5);
+  --water: #2a3032;
+  --water-stroke: rgba(150, 165, 168, 0.42);
   --label-ink: #f4f3ee;
   --label-halo: rgba(8, 8, 10, 0.85);
 
@@ -107,10 +110,10 @@
     --border: rgba(255, 255, 255, 0.1);
     --border-strong: rgba(255, 255, 255, 0.17);
 
-    --accent: #f97316;
-    --accent-strong: #fb923c;
-    --accent-contrast: #1a0e03;
-    --accent-soft: rgba(249, 115, 22, 0.2);
+    --accent: #ecebe6;
+    --accent-strong: #ffffff;
+    --accent-contrast: #16161a;
+    --accent-soft: rgba(255, 255, 255, 0.16);
 
     --sea: #0d0d10;
     --land: #1a1a1f;
@@ -118,8 +121,8 @@
     --map-empty: #2c2c33;
     --outline: rgba(255, 255, 255, 0.26);
     --outline-shadow: rgba(0, 0, 0, 0.7);
-    --water: #1d4f5e;
-    --water-stroke: rgba(122, 198, 214, 0.5);
+    --water: #2a3032;
+    --water-stroke: rgba(150, 165, 168, 0.42);
     --label-ink: #f4f3ee;
     --label-halo: rgba(8, 8, 10, 0.85);
 
@@ -165,29 +168,30 @@ main {
 /* ---------- top bar ---------- */
 .topbar {
   position: absolute;
-  top: max(12px, env(safe-area-inset-top));
-  left: 14px; right: 14px;
+  top: max(10px, env(safe-area-inset-top));
+  left: 12px; right: 12px;
   z-index: 30;
   display: flex; align-items: center; justify-content: space-between;
   gap: 12px;
-  padding: 10px 12px 10px 14px;
+  padding: 8px 12px;
   border-radius: var(--radius-lg);
 }
 .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .brand .mark {
   flex: none;
-  font-family: var(--font-serif), Georgia, serif;
-  font-weight: 900; font-size: 32px; line-height: 1;
+  width: 32px; height: 32px; display: block;
   color: var(--accent);
-  letter-spacing: 0;
   user-select: none; -webkit-user-select: none;
 }
 .brand .titles { min-width: 0; }
 .brand h1 {
   margin: 0;
-  font-family: var(--font-sans), system-ui, sans-serif;
-  font-size: var(--text-xl); font-weight: 800; letter-spacing: -0.4px;
+  display: flex; align-items: center;
   line-height: 1.1; white-space: nowrap;
+}
+.brand .wordmark {
+  font-family: var(--font-serif), Georgia, serif;
+  font-size: var(--text-xl); font-weight: 700; letter-spacing: -0.2px;
 }
 .brand p {
   margin: 2px 0 0;
@@ -326,7 +330,7 @@ main {
 .tooltip .val {
   font-family: var(--font-sans), system-ui, sans-serif;
   font-size: var(--text-sm); font-weight: 700;
-  font-variant-numeric: tabular-nums; color: var(--accent-strong);
+  font-variant-numeric: tabular-nums; color: var(--tip-ink);
 }
 
 /* per-city value breakdown (e.g. party vote shares) */
@@ -343,8 +347,8 @@ main {
   background: rgba(255, 255, 255, 0.1);
 }
 .tooltip .pbar i { display: block; height: 100%; border-radius: 4px; }
-.tooltip .pbar i.r { background: #5b8def; } /* right bloc — blue (matches RdBu high) */
-.tooltip .pbar i.l { background: #e0607e; } /* left bloc — red  (matches RdBu low)  */
+.tooltip .pbar i.r { background: #d97834; } /* right bloc — earth orange (EarthDiv high) */
+.tooltip .pbar i.l { background: #8a6aba; } /* left bloc  — earth purple (EarthDiv low)  */
 .tooltip .pbar i.n { background: rgba(255, 255, 255, 0.5); } /* untagged */
 .tooltip .ppct { font-size: 12px; font-variant-numeric: tabular-nums; opacity: 0.85; }
 
@@ -442,14 +446,20 @@ main {
   z-index: 1; transition: transform .12s;
 }
 .timeline .tick.past { box-shadow: inset 0 0 0 2px var(--accent); background: var(--accent); }
+/* sized to sit cleanly within the 26px track: a compact ink disc with a thin
+   surface ring (no oversized glow halo, which used to overflow the rail) */
 .timeline .thumb {
-  position: absolute; left: 50%; width: 22px; height: 22px;
-  margin-left: -11px; margin-top: -11px; border-radius: 50%;
-  background: var(--accent); border: 3px solid var(--surface-solid);
-  box-shadow: var(--shadow-md), 0 0 0 4px var(--accent-soft);
+  position: absolute; left: 50%; width: 15px; height: 15px;
+  margin-left: -7.5px; margin-top: -7.5px; border-radius: 50%;
+  background: var(--accent); border: 2.5px solid var(--surface-solid);
+  box-shadow: var(--shadow-sm), 0 0 0 1px var(--border-strong);
   z-index: 2; cursor: grab;
+  transition: transform .12s ease;
 }
 .timeline .thumb:active { cursor: grabbing; }
+.timeline:hover .thumb,
+.timeline:focus-within .thumb,
+.timeline.active .thumb { transform: scale(1.18); }
 .timeline .tlabel {
   position: absolute; right: 100%; margin-right: 8px;
   white-space: nowrap; pointer-events: none;
@@ -487,13 +497,20 @@ main {
 /* ---------- mobile ---------- */
 @media (max-width: 560px) {
   .brand p { display: none; }
-  .brand .mark { font-size: 26px; }
-  .brand h1 { font-size: var(--text-lg); }
-  .topbar { padding: 8px 10px; }
-  .timeline { padding: 12px 8px; }
+  /* icon-only brand on mobile — frees the bar for the dataset name + actions
+     and keeps the vector mark crisp at any size, reclaiming screen for the map */
+  .brand .wordmark { display: none; }
+  .brand .mark { width: 27px; height: 27px; }
+  .topbar {
+    top: max(8px, env(safe-area-inset-top));
+    left: 8px; right: 8px; padding: 6px 8px; gap: 8px;
+  }
+  .picker select { max-width: 58vw; }
+  .timeline { padding: 12px 8px; right: 10px; }
   .timeline .ticks { min-height: 150px; }
-  .legend { font-size: var(--text-xs); padding: 9px 11px; }
+  .legend { font-size: var(--text-xs); padding: 9px 11px; right: 10px; }
+  .zoomctl { left: 10px; }
 }
 @media (max-width: 380px) {
-  .picker select { max-width: 44vw; }
+  .picker select { max-width: 50vw; }
 }

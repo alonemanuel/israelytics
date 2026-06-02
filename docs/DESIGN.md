@@ -13,7 +13,7 @@ Font files live in `app/fonts/`.
 ### Where each font is used
 
 **Hadassah (serif)** — editorial and named-entity slots:
-- Brand mark "י" (`font-weight: 900`, accent color, 32 px)
+- Brand wordmark "ישראליטיקס" (`.wordmark`, weight 700, `--text-xl`)
 - Info-panel heading `h2`
 - Tooltip city name (`b` tag, weight 500)
 
@@ -21,6 +21,14 @@ Font files live in `app/fonts/`.
 - Body text, dataset picker, legend, timeline labels, map city labels, tooltip values
 
 The rule: serif for *named things you read*, sans for *data you scan*.
+
+### Brand mark
+
+The mark is a **vector SVG**, not a glyph: `components/BrandMark.tsx` draws a rising
+analytics trend line whose peak is a Star of David — "Israel + analytics" in one shape,
+stroked in `currentColor` (so it inherits the ink accent and stays monochrome). It sizes via
+`.brand .mark` (32 px desktop, 27 px mobile). On mobile the wordmark hides and the icon alone
+carries the brand, freeing the bar for the dataset name and reclaiming screen for the map.
 
 ## Type scale
 
@@ -50,13 +58,25 @@ See the `:root` block in `app/globals.css` for the full list; key tokens:
 | `--ink` | `#1b1a17` | `#ecebe6` | primary text |
 | `--muted` | `#6c6a63` | `#9b9a93` | secondary text, legend ends |
 | `--surface` | `rgba(252,251,248,.82)` | `rgba(34,34,40,.66)` | glass panels |
-| `--accent` | `#c2410c` | `#f97316` | brand mark, active states |
-| `--accent-strong` | `#9a3412` | `#fb923c` | tooltip values, selected borders |
-| `--water` | `#8fc3d0` | `#1d4f5e` | inland lakes (Kinneret, Dead Sea) |
+| `--accent` | `#1b1a17` | `#ecebe6` | brand mark, active states (ink, not a hue) |
+| `--accent-strong` | `#000000` | `#ffffff` | selected borders |
+| `--water` | `#c7cdcd` | `#2a3032` | inland lakes (Kinneret, Dead Sea) — neutral gray |
 
-### Neutral-first philosophy
+### Monochrome shell — color only from the data
 
-The palette is intentionally low-chroma so the **data colours on the map carry the visual weight**. Don't introduce saturated UI colours; the accent (orange) is the only chromatic element outside the map.
+The entire UI is **achromatic** (black/white/grays). `--accent`/`--accent-strong` are ink, not
+a hue, so the brand mark, focus rings, active/selected states and the timeline fill all read as
+ink; inland water is a neutral gray. The **only** color on screen comes from the data layer.
+Never introduce a chromatic UI color — if you reach for one, it belongs to the data, not the
+chrome.
+
+### Data palette — `EarthDiv`
+
+The signature data divergence is `EarthDiv` (defined in `lib/colorScale.ts`): **earth-purple**
+at the low pole, a warm neutral midpoint, **earth-orange** at the high pole. Diverging datasets
+(e.g. right-vs-left: purple = left/−1, orange = right/+1) use it; the tooltip breakdown bars
+mirror the poles (`i.l` purple, `i.r` orange). Sequential datasets pick a single d3 ramp
+(e.g. `haredi-vote` → `Purples`).
 
 ## Component surface — glass panels
 
@@ -87,7 +107,7 @@ No magic numbers: use the radius tokens and the `env(safe-area-inset-*)` wrapper
 
 - Projection: planar `d3.geoIdentity` with longitude×cos(lat) correction (not Mercator — see `docs/DECISIONS.md`).
 - Land fill: `--land`; sea fill: `--sea`; city regions: `--map-empty` when no data.
-- Inland water (Kinneret, Dead Sea) is its own layer drawn over the land + city fills in `--water` (a teal, kept distinct from the political-blue data colours) with a `--water-stroke` shoreline. Source: `public/data/water.json`. The coastline is clipped flush to the coastal cities and the Kinneret is cut out of the landmass — see `docs/DECISIONS.md`.
+- Inland water (Kinneret, Dead Sea) is its own layer drawn over the land + city fills in `--water` (a neutral cool gray — achromatic, so the only color on the map is the data) with a `--water-stroke` shoreline. Source: `public/data/water.json`. The coastline is clipped flush to the coastal cities and the Kinneret is cut out of the landmass — see `docs/DECISIONS.md`.
 - City labels: HTML overlay (not SVG text), positioned in screen-px by `MapView` so they stay crisp at any zoom.
 - Dot radius is driven by `weight` from `geo.json` (≈ electorate size), not the dataset value.
 
