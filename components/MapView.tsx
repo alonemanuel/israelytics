@@ -202,6 +202,9 @@ export default function MapView({
 
     const zoom = d3.zoom<SVGSVGElement, unknown>()
       .scaleExtent([1, 240]).translateExtent([[0, 0], [VB, VB]])
+      // Faster wheel/trackpad zoom than d3's default (×0.002) so the deep end of
+      // the 240× range is reachable in a few scrolls, not dozens.
+      .wheelDelta((e) => -e.deltaY * (e.deltaMode === 1 ? 0.05 : e.deltaMode ? 1 : 0.002) * 3)
       .on("zoom", (e) => {
         gZoom.attr("transform", e.transform.toString());
         gDots.selectAll<SVGCircleElement, Dot>("circle").attr("r", (d) => dotR(d.weight) / e.transform.k);
@@ -209,6 +212,13 @@ export default function MapView({
         followPinnedTip();
       });
     svg.call(zoom).on("dblclick.zoom", null);
+    // Double-click (or double-tap) zooms IN toward the cursor — the fast way to
+    // home in on a tiny place without the zoom-then-pan dance. Default d3
+    // dblclick.zoom is disabled above so we control the factor + center.
+    svg.on("dblclick.zoomin", (e) => {
+      e.preventDefault();
+      svg.transition().duration(300).call(zoom.scaleBy, 3, d3.pointer(e, node));
+    });
     (node as any).__zoom_reset = () => svg.transition().duration(350).call(zoom.transform, d3.zoomIdentity);
     (node as any).__zoom_by = (f: number) => svg.transition().duration(250).call(zoom.scaleBy, f);
 
@@ -330,8 +340,8 @@ export default function MapView({
       <svg ref={svgRef} viewBox={`0 0 ${VB} ${VB}`} preserveAspectRatio="xMidYMid meet" />
       <div ref={labelLayerRef} className="labels-layer" />
       <div className="zoomctl glass">
-        <button onClick={() => (svgRef.current as any)?.__zoom_by?.(1.8)} title="התקרבות" aria-label="התקרבות">+</button>
-        <button onClick={() => (svgRef.current as any)?.__zoom_by?.(1 / 1.8)} title="התרחקות" aria-label="התרחקות">−</button>
+        <button onClick={() => (svgRef.current as any)?.__zoom_by?.(2.5)} title="התקרבות" aria-label="התקרבות">+</button>
+        <button onClick={() => (svgRef.current as any)?.__zoom_by?.(1 / 2.5)} title="התרחקות" aria-label="התרחקות">−</button>
         <div className="sep" />
         <button onClick={() => (svgRef.current as any)?.__zoom_reset?.()} title="איפוס תצוגה" aria-label="איפוס תצוגה">⤢</button>
       </div>

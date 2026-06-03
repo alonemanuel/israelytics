@@ -350,3 +350,14 @@ grows them; it only spreads them apart. So the fix is two-pronged: more zoom hea
 polygons, and a slightly larger baseline hit target for the smallest dots.
 **Rejected:** an invisible oversized hit-circle per dot (extra layer + stroke-scaling bookkeeping
 under the zoom transform for marginal gain over a modestly larger visible radius).
+
+### 2026-06-03 — Faster zoom + double-click-to-zoom-at-cursor
+**What:** with the range now 240×, reaching the deep end was tedious. Sped it up three ways:
+button step 1.8→2.5× (≈6 clicks to max vs ≈9), wheel/trackpad delta ×3 over d3's default, and
+re-enabled double-click (`dblclick.zoomin`) to zoom 3× **toward the cursor**.
+**Why:** zoom is multiplicative (already "exponential"), so the real cost was the number of
+steps + the zoom-then-pan dance to center a tiny place. Double-click-at-cursor collapses both:
+aim at the place, double-click, it grows under the pointer. The constant per-step factor is kept
+(predictable) rather than accelerating held buttons.
+**Rejected:** accelerating zoom while a button is held (unpredictable, fiddly to tune); a much
+larger single-step factor (jumpy, easy to overshoot a small target).
