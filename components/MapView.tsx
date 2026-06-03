@@ -43,6 +43,7 @@ export default function MapView({
   step: number;
 }) {
   const svgRef = useRef<SVGSVGElement | null>(null);
+  const dbgRef = useRef<HTMLDivElement | null>(null); // TEMP fling diagnostic readout
   const tipRef = useRef<HTMLDivElement | null>(null);
   const labelLayerRef = useRef<HTMLDivElement | null>(null); // screen-space city labels
   const projRef = useRef<d3.GeoProjection | null>(null);
@@ -227,6 +228,7 @@ export default function MapView({
     const LOOKBACK = 170;     // ms; window the throw velocity is averaged over
     const FRICTION = 0.975, FLING_MIN = 0.035, STOP_MIN = 0.01; // tuned by feel
     const stopMomentum = () => { if (momentumRAF) { cancelAnimationFrame(momentumRAF); momentumRAF = 0; } };
+    const dbg = (s: string) => { if (dbgRef.current) dbgRef.current.textContent = s; }; // TEMP diagnostic
 
     // Clamp `t` so the viewport (the svg's viewBox extent) stays within `bounds`
     // — d3's own constrain math, which (unlike interactive drags) it does NOT
@@ -252,19 +254,23 @@ export default function MapView({
     const zoom = d3.zoom<SVGSVGElement, unknown>()
       .scaleExtent([1, 60])
       .translateExtent(PADDED) // allow over-pan; spring-back fixes it on release
-      .on("start", (e) => { if (e.sourceEvent) { stopMomentum(); svg.interrupt(); pts = []; } })
+      .on("start", (e) => { if (e.sourceEvent) { stopMomentum(); svg.interrupt(); pts = []; dbg(`drag… (${e.sourceEvent.type})`); } })
       .on("zoom", (e) => {
         render(e.transform);
         if (!e.sourceEvent) return;
-        const now = performance.now(), t = e.transform;
+        // Use the source event's own timestamp, not performance.now(): on mobile,
+        // touch events can be delivered batched in one frame, so performance.now()
+        // at handler time collapses to ~0 elapsed and velocity reads 0.
+        const now = e.sourceEvent.timeStamp || performance.now(), t = e.transform;
         pts.push({ t: now, x: t.x, y: t.y, k: t.k });
         while (pts.length > 2 && now - pts[0].t > 260) pts.shift(); // keep ~last 260ms
       })
       .on("end", (e) => {
         if (!e.sourceEvent) return;
         vx = vy = 0;
-        const now = performance.now();
+        const now = e.sourceEvent.timeStamp || performance.now();
         const last = pts[pts.length - 1];
+        let _dbgDt = 0, _dbgRaw = 0;
         if (last) {
           // Oldest sample within the look-back (same scale) → average velocity over
           // the throw, not just the final slow segment.
@@ -274,19 +280,27 @@ export default function MapView({
             vx = (last.x - ref.x) / dt;
             vy = (last.y - ref.y) / dt;
           }
+          _dbgDt = dt; _dbgRaw = Math.hypot(vx, vy);
           // Bleed off by any real pause before lifting: normal release latency
           // (≤ GRACE) keeps full speed; a deliberate hold decays to ~0.
           const GRACE = 40, TAU = 90;
           const damp = Math.exp(-Math.max(0, now - last.t - GRACE) / TAU);
           vx *= damp; vy *= damp;
         }
-        if (Math.hypot(vx, vy) < FLING_MIN) { springBack(); return; }
-        let prev = now;
+        const willFling = Math.hypot(vx, vy) >= FLING_MIN;
+        dbg(`in=${e.sourceEvent.type} pts=${pts.length} dt=${_dbgDt.toFixed(0)}ms `
+          + `v=${Math.hypot(vx, vy).toFixed(3)} (min ${FLING_MIN}) → ${willFling ? "FLING" : "no fling"}`);
+        if (!willFling) { springBack(); return; }
+        let prev = performance.now(), frames = 0, x0 = d3.zoomTransform(node).x;
         const tick = (now: number) => {
-          const dt = Math.min(now - prev, 40); prev = now;
+          const dt = Math.min(now - prev, 40); prev = now; frames++;
           const decay = Math.pow(FRICTION, dt / 16.67);
           vx *= decay; vy *= decay;
-          if (Math.hypot(vx, vy) < STOP_MIN) { momentumRAF = 0; springBack(); return; }
+          if (Math.hypot(vx, vy) < STOP_MIN) {
+            momentumRAF = 0;
+            dbg(`FLUNG: ${frames} frames, coast ${Math.round(d3.zoomTransform(node).x - x0)}u`);
+            springBack(); return;
+          }
           const t0 = d3.zoomTransform(node);
           // zoom.transform doesn't enforce translateExtent, so clamp to PADDED here.
           const nt = constrainTo(d3.zoomIdentity.translate(t0.x + vx * dt, t0.y + vy * dt).scale(t0.k), PADDED);
@@ -425,6 +439,18 @@ export default function MapView({
         <button onClick={() => (svgRef.current as any)?.__zoom_reset?.()} title="איפוס תצוגה" aria-label="איפוס תצוגה">⤢</button>
       </div>
       <div ref={tipRef} className="tooltip" />
+      {/* TEMP fling diagnostic — remove after debugging */}
+      <div
+        ref={dbgRef}
+        style={{
+          position: "absolute", left: 8, top: 8, zIndex: 9999,
+          background: "rgba(0,0,0,0.82)", color: "#0f0", font: "12px/1.4 monospace",
+          padding: "6px 8px", borderRadius: 6, maxWidth: "92%", pointerEvents: "none",
+          whiteSpace: "pre-wrap", direction: "ltr",
+        }}
+      >
+        fling debug: flick the map…
+      </div>
     </div>
   );
 }
