@@ -340,6 +340,20 @@ southern borders (no cities sit right at those) and distort the silhouette.
 so the hole cuts through regardless of ring winding. Verified with the real d3 projection
 (geoIdentity + cos-lat) rasterized headless, since a browser couldn't be installed here.
 
+### 2026-06-03 — City-name label gate eases quadratically with zoom
+**What:** The weight gate that decides which cities get a name label
+(`minW = LABEL_W0 / k`) now falls off as `LABEL_W0 / k²`. At `k=1` it is unchanged
+(~150000, the top few cities); it crosses below the smallest city weight (62) around
+`k≈50`, so **every city eventually earns a label if you zoom in close enough** (and
+the deeper 240× range below leaves ample headroom past that crossover).
+**Why:** with the linear gate, max zoom only reached `minW=2500` — 1005 of 1213 cities
+could *never* show a label at any zoom, which is what the user hit. The existing
+weight-priority collision pass still prevents overlap, so labels just fill in
+progressively as space opens up rather than all appearing at once.
+**Rejected:** removing the gate entirely (would dump every label the moment two centroids
+stop colliding, and thrash the collision loop at low zoom); a hard "show-all above k=N"
+switch (abrupt pop-in instead of a smooth fill).
+
 ### 2026-06-03 — Deeper zoom + a clickable floor for the smallest dots
 **What:** raised the map's max zoom from 60× to 240× (`zoom.scaleExtent`) and bumped the
 point-dot minimum radius from 1.3 to 2.2 (`dotR` range).

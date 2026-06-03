@@ -60,7 +60,8 @@ pipeline/            Python: raw sources -> standard JSON (never knows about ren
       SOURCE.md, build.py    -> public/data/datasets/right-left-vote.json (+ registers it)
 app/                 Next.js App Router (TypeScript)
   page.tsx               client view: picker + map + timeline + info panel
-components/          DatasetPicker, MapView (D3 SVG + zoom/pan), Timeline, Legend, InfoButton, ThemeToggle
+components/          DatasetPicker, PlaceSearch (autocomplete -> zoom+select a city),
+                     MapView (D3 SVG + zoom/pan), Timeline, Legend, InfoButton, ThemeToggle
 lib/                 types.ts, colorScale.ts, useData.ts
 public/data/         geo.json, border.json, water.json, datasets/<id>.json, datasets/index.json
 ```

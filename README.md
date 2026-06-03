@@ -3,9 +3,9 @@
 Visualize data about Israeli cities on a map of Israel, with a timeline.
 
 Pick a dataset, and the map colors every city by that dataset's value — then drag a
-slider to watch it change across time. It's built to be **generic**: the map of Israel
-is shared, and each dataset is just a data file. Adding a new dataset means dropping in
-a JSON file — no code changes.
+slider to watch it change across time. Search a city by name to zoom in on it and
+select it. It's built to be **generic**: the map of Israel is shared, and each dataset
+is just a data file. Adding a new dataset means dropping in a JSON file — no code changes.
 
 **Status:** working POC. Two datasets so far, both across Knesset elections 17–25
 (2006–2022): **Haredi (ultra-orthodox) vote share** per city, and **Right vs Left**

@@ -73,6 +73,16 @@ Floating panels (topbar, legend, timeline, info panel, tooltip) use the `.glass`
 
 `--blur` is `16px`. Don't add `backdrop-filter` outside `.glass` — it creates new stacking contexts and is expensive.
 
+## Place search
+
+A pill `<input>` in the topbar actions cluster (inline-start of the dataset picker),
+styled like `.picker select`: `--surface-solid` fill, `--border-strong` border, `999px`
+radius, with an inline magnifier icon (`--muted`) and a clear `×`. Focus expands the
+field and adds the `--accent-soft` focus ring. The autocomplete dropdown (`.search-list`)
+is a `.glass` panel anchored under the input; the active row uses `--accent-soft` /
+`--accent-strong`. RTL-aware via logical properties. Picking a result hands the city's
+CBS key up to `MapView`, which zooms in on it and selects it (pins the tooltip).
+
 ## Spacing & radius
 
 ```

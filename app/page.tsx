@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useData } from "@/lib/useData";
 import DatasetPicker from "@/components/DatasetPicker";
+import PlaceSearch from "@/components/PlaceSearch";
 import Timeline from "@/components/Timeline";
 import Legend from "@/components/Legend";
 import MapView from "@/components/MapView";
@@ -13,6 +14,9 @@ export default function Home() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const { geo, border, water, index, dataset, error } = useData(selectedId);
   const [step, setStep] = useState(0);
+  // a city the search asked the map to zoom in on + select (n forces a re-fire
+  // even when the same city is picked twice)
+  const [focus, setFocus] = useState<{ key: string; n: number } | null>(null);
 
   // default to the first dataset once the registry loads
   useEffect(() => {
@@ -27,7 +31,7 @@ export default function Home() {
   return (
     <main dir="rtl">
       {geo ? (
-        <MapView geo={geo} border={border} water={water} dataset={dataset} step={step} />
+        <MapView geo={geo} border={border} water={water} dataset={dataset} step={step} focus={focus} />
       ) : (
         !error && (
           <div className="center-msg">
@@ -57,6 +61,12 @@ export default function Home() {
           </div>
         </div>
         <div className="topbar-actions">
+          {geo && (
+            <PlaceSearch
+              geo={geo}
+              onPick={(key) => setFocus((f) => ({ key, n: (f?.n ?? 0) + 1 }))}
+            />
+          )}
           {index.length > 0 && (
             <DatasetPicker index={index} selectedId={selectedId} onSelect={setSelectedId} />
           )}
