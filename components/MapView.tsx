@@ -67,7 +67,7 @@ export default function MapView({
   }, [geo]);
 
   const dotR = useMemo(
-    () => d3.scaleSqrt().domain([0, d3.max(dots, (d) => d.weight) || 1]).range([1.3, 9]),
+    () => d3.scaleSqrt().domain([0, d3.max(dots, (d) => d.weight) || 1]).range([2.2, 9]),
     [dots]
   );
 
@@ -201,7 +201,7 @@ export default function MapView({
     followTipRef.current = followPinnedTip;
 
     const zoom = d3.zoom<SVGSVGElement, unknown>()
-      .scaleExtent([1, 60]).translateExtent([[0, 0], [VB, VB]])
+      .scaleExtent([1, 240]).translateExtent([[0, 0], [VB, VB]])
       .on("zoom", (e) => {
         gZoom.attr("transform", e.transform.toString());
         gDots.selectAll<SVGCircleElement, Dot>("circle").attr("r", (d) => dotR(d.weight) / e.transform.k);

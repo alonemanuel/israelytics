@@ -339,3 +339,14 @@ southern borders (no cities sit right at those) and distort the silhouette.
 **Note:** `border.json` carries the Kinneret as a hole; `.landmass` uses `fill-rule: evenodd`
 so the hole cuts through regardless of ring winding. Verified with the real d3 projection
 (geoIdentity + cos-lat) rasterized headless, since a browser couldn't be installed here.
+
+### 2026-06-03 — Deeper zoom + a clickable floor for the smallest dots
+**What:** raised the map's max zoom from 60× to 240× (`zoom.scaleExtent`) and bumped the
+point-dot minimum radius from 1.3 to 2.2 (`dotR` range).
+**Why:** the tiniest localities — small polygon enclaves and the ~30 point-dot settlements —
+were too small to hover or tap, and 60× wasn't enough to enlarge a tiny polygon to a clickable
+size. Dots are drawn at a constant screen size (`r = dotR(weight) / k`), so zoom alone never
+grows them; it only spreads them apart. So the fix is two-pronged: more zoom headroom for tiny
+polygons, and a slightly larger baseline hit target for the smallest dots.
+**Rejected:** an invisible oversized hit-circle per dot (extra layer + stroke-scaling bookkeeping
+under the zoom transform for marginal gain over a modestly larger visible radius).
