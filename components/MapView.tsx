@@ -200,17 +200,64 @@ export default function MapView({
     };
     followTipRef.current = followPinnedTip;
 
+    const render = (t: d3.ZoomTransform) => {
+      gZoom.attr("transform", t.toString());
+      gDots.selectAll<SVGCircleElement, Dot>("circle").attr("r", (d) => dotR(d.weight) / t.k);
+      placeLabels(t);
+      followPinnedTip();
+    };
+
+    // Momentum / fling: d3.zoom has no inertia — a drag stops dead on release.
+    // We measure pointer velocity through the pan gesture and, on release, coast
+    // the transform with a decaying velocity until it runs out of speed or hits a
+    // translateExtent wall. Velocity is in viewBox units/ms; programmatic moves
+    // (sourceEvent == null) neither feed nor trigger the fling.
+    let momentumRAF = 0;
+    let vx = 0, vy = 0;
+    let lastT: d3.ZoomTransform | null = null;
+    let lastTime = 0;
+    const FRICTION = 0.95, FLING_MIN = 0.08, STOP_MIN = 0.015; // tuned by feel
+    const stopMomentum = () => { if (momentumRAF) { cancelAnimationFrame(momentumRAF); momentumRAF = 0; } };
+
     const zoom = d3.zoom<SVGSVGElement, unknown>()
       .scaleExtent([1, 60]).translateExtent([[0, 0], [VB, VB]])
+      .on("start", (e) => { if (e.sourceEvent) { stopMomentum(); vx = vy = 0; lastT = null; } })
       .on("zoom", (e) => {
-        gZoom.attr("transform", e.transform.toString());
-        gDots.selectAll<SVGCircleElement, Dot>("circle").attr("r", (d) => dotR(d.weight) / e.transform.k);
-        placeLabels(e.transform);
-        followPinnedTip();
+        render(e.transform);
+        if (!e.sourceEvent) return;
+        const now = performance.now(), t = e.transform;
+        // only track velocity while purely panning; a scale change resets it so
+        // zooming doesn't fling the map sideways.
+        if (lastT && t.k === lastT.k && now > lastTime) {
+          const dt = now - lastTime;
+          vx = 0.7 * ((t.x - lastT.x) / dt) + 0.3 * vx;
+          vy = 0.7 * ((t.y - lastT.y) / dt) + 0.3 * vy;
+        } else {
+          vx = vy = 0;
+        }
+        lastT = t; lastTime = now;
+      })
+      .on("end", (e) => {
+        if (!e.sourceEvent || Math.hypot(vx, vy) < FLING_MIN) return;
+        let last = performance.now();
+        const tick = (now: number) => {
+          const dt = Math.min(now - last, 40); last = now;
+          const decay = Math.pow(FRICTION, dt / 16.67);
+          vx *= decay; vy *= decay;
+          if (Math.hypot(vx, vy) < STOP_MIN) { momentumRAF = 0; return; }
+          const t0 = d3.zoomTransform(node);
+          const nt = d3.zoomIdentity.translate(t0.x + vx * dt, t0.y + vy * dt).scale(t0.k);
+          svg.call(zoom.transform, nt);
+          const t1 = d3.zoomTransform(node); // clamped by translateExtent
+          if (Math.abs(t1.x - t0.x) < 0.01) vx = 0; // hit a wall — stop that axis
+          if (Math.abs(t1.y - t0.y) < 0.01) vy = 0;
+          momentumRAF = requestAnimationFrame(tick);
+        };
+        momentumRAF = requestAnimationFrame(tick);
       });
     svg.call(zoom).on("dblclick.zoom", null);
-    (node as any).__zoom_reset = () => svg.transition().duration(350).call(zoom.transform, d3.zoomIdentity);
-    (node as any).__zoom_by = (f: number) => svg.transition().duration(250).call(zoom.scaleBy, f);
+    (node as any).__zoom_reset = () => { stopMomentum(); svg.transition().duration(350).call(zoom.transform, d3.zoomIdentity); };
+    (node as any).__zoom_by = (f: number) => { stopMomentum(); svg.transition().duration(250).call(zoom.scaleBy, f); };
 
     placeLabels(d3.zoomIdentity); // initial pass
     // labels live in screen px, so reflow them whenever the stage resizes
@@ -219,7 +266,7 @@ export default function MapView({
       followPinnedTip();
     });
     if (node.parentElement) ro.observe(node.parentElement);
-    return () => ro.disconnect();
+    return () => { ro.disconnect(); stopMomentum(); };
   }, [features, dots, dotR, border, water]);
 
   // Recolor + (re)bind interactions whenever dataset or timestep changes.
