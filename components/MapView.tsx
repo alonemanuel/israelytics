@@ -35,12 +35,15 @@ export default function MapView({
   water,
   dataset,
   step,
+  focus,
 }: {
   geo: GeoData;
   border: BorderGeometry | null;
   water: WaterData;
   dataset: Dataset | null;
   step: number;
+  /** bumped by the place search to zoom in on + select a city by CBS key */
+  focus: { key: string; n: number } | null;
 }) {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const tipRef = useRef<HTMLDivElement | null>(null);
@@ -51,6 +54,8 @@ export default function MapView({
   const pinnedRef = useRef(false); // tooltip pinned by tap (touch)
   const selectedRef = useRef<{ name: string; key: string } | null>(null); // currently pinned city
   const followTipRef = useRef<(() => void) | null>(null); // repositions pinned tip at its city
+  const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null); // for programmatic zoom
+  const focusCityRef = useRef<((key: string) => void) | null>(null); // zoom-to + select a city by key
 
   // Split the base map into polygon features and point dots (depends on geo only).
   const { features, dots } = useMemo(() => {
@@ -67,7 +72,7 @@ export default function MapView({
   }, [geo]);
 
   const dotR = useMemo(
-    () => d3.scaleSqrt().domain([0, d3.max(dots, (d) => d.weight) || 1]).range([1.3, 9]),
+    () => d3.scaleSqrt().domain([0, d3.max(dots, (d) => d.weight) || 1]).range([2.2, 9]),
     [dots]
   );
 
@@ -153,11 +158,15 @@ export default function MapView({
     const layer = d3.select(labelLayerRef.current!);
     const FONT = 13, CHAR_W = 7.4, PAD_X = 7, PAD_Y = 6; // px box estimate for collision
     const LABEL_W0 = 150000; // weight gate at k=1 (~top 8 cities); eases as you zoom in
+    // Falloff is quadratic in zoom so the gate drops below the smallest city
+    // (weight ~62) around k≈50 (minW = LABEL_W0/k²): every city eventually earns a
+    // label if you zoom in close enough, while k=1 still shows only the top few.
+    // Collision below still prevents overlap, so they just fill in as space opens.
     const placeLabels = (t: d3.ZoomTransform) => {
       const ctm = gZoom.node()!.getScreenCTM();
       if (!ctm || !node.parentElement) return;
       const host = node.parentElement.getBoundingClientRect();
-      const minW = LABEL_W0 / t.k;
+      const minW = LABEL_W0 / (t.k * t.k);
       const placed: { l: number; t: number; r: number; b: number }[] = [];
       const shown: (LabelPt & { x: number; y: number })[] = [];
       for (const p of labelPts) {
@@ -250,8 +259,11 @@ export default function MapView({
     };
 
     const zoom = d3.zoom<SVGSVGElement, unknown>()
-      .scaleExtent([1, 60])
+      .scaleExtent([1, 240])
       .translateExtent(PADDED) // allow over-pan; spring-back fixes it on release
+      // Faster wheel/trackpad zoom than d3's default (×0.002) so the deep end of
+      // the 240× range is reachable in a few scrolls, not dozens.
+      .wheelDelta((e) => -e.deltaY * (e.deltaMode === 1 ? 0.05 : e.deltaMode ? 1 : 0.002) * 3)
       .on("start", (e) => { if (e.sourceEvent) { stopMomentum(); svg.interrupt(); pts = []; } })
       .on("zoom", (e) => {
         render(e.transform);
@@ -304,6 +316,16 @@ export default function MapView({
         momentumRAF = requestAnimationFrame(tick);
       });
     svg.call(zoom).on("dblclick.zoom", null);
+    // Double-click (or double-tap) zooms IN toward the cursor — the fast way to
+    // home in on a tiny place without the zoom-then-pan dance. Default d3
+    // dblclick.zoom is disabled above so we control the factor + center.
+    svg.on("dblclick.zoomin", (e) => {
+      e.preventDefault();
+      stopMomentum(); svg.interrupt();
+      svg.transition().duration(300).call(zoom.scaleBy, 3, d3.pointer(e, node));
+    });
+    zoomRef.current = zoom;
+    (node as any).__stopMomentum = stopMomentum; // let other effects cancel an in-flight fling
     (node as any).__zoom_reset = () => { stopMomentum(); svg.interrupt(); svg.transition().duration(350).call(zoom.transform, d3.zoomIdentity); };
     (node as any).__zoom_by = (f: number) => { stopMomentum(); svg.interrupt(); svg.transition().duration(250).call(zoom.scaleBy, f); };
 
@@ -387,6 +409,26 @@ export default function MapView({
       followTipRef.current?.();
     }
 
+    // Zoom in on a city and select it as if it had been clicked — driven by the
+    // place search. Centers the city's anchor at the stage middle, pins the
+    // tooltip (which then tracks the city as the transition runs).
+    const focusCity = (key: string) => {
+      const z = zoomRef.current;
+      const a = anchorsRef.current.get(key);
+      if (!z || !a) return;
+      const name = geo.cities[key]?.nameHe ?? "";
+      (node as any).__stopMomentum?.(); // cancel any in-flight fling before the focus animation
+      const t = d3.zoomIdentity.translate(VB / 2, VB / 2).scale(14).translate(-a[0], -a[1]);
+      svg.interrupt().transition().duration(700).call(z.transform, t);
+      svg.selectAll(".sel").classed("sel", false);
+      svg.selectAll(`[data-key="${key}"]`).classed("sel", true);
+      pinnedRef.current = true;
+      selectedRef.current = { name, key };
+      render(name, key);
+      followTipRef.current?.();
+    };
+    focusCityRef.current = focusCity;
+
     const bind = (sel: any, nameOf: (d: any) => string, keyOf: (d: any) => string) =>
       sel
         .on("mousemove", (ev: any, d: any) => {
@@ -418,15 +460,20 @@ export default function MapView({
       tip.classed("show", false);
       svg.selectAll(".sel").classed("sel", false);
     });
-  }, [dataset, step]);
+  }, [dataset, step, geo]);
+
+  // place search picked a city: zoom in on it and select it
+  useEffect(() => {
+    if (focus) focusCityRef.current?.(focus.key);
+  }, [focus]);
 
   return (
     <div className="stage">
       <svg ref={svgRef} viewBox={`0 0 ${VB} ${VB}`} preserveAspectRatio="xMidYMid meet" />
       <div ref={labelLayerRef} className="labels-layer" />
       <div className="zoomctl glass">
-        <button onClick={() => (svgRef.current as any)?.__zoom_by?.(1.8)} title="התקרבות" aria-label="התקרבות">+</button>
-        <button onClick={() => (svgRef.current as any)?.__zoom_by?.(1 / 1.8)} title="התרחקות" aria-label="התרחקות">−</button>
+        <button onClick={() => (svgRef.current as any)?.__zoom_by?.(2.5)} title="התקרבות" aria-label="התקרבות">+</button>
+        <button onClick={() => (svgRef.current as any)?.__zoom_by?.(1 / 2.5)} title="התרחקות" aria-label="התרחקות">−</button>
         <div className="sep" />
         <button onClick={() => (svgRef.current as any)?.__zoom_reset?.()} title="איפוס תצוגה" aria-label="איפוס תצוגה">⤢</button>
       </div>
