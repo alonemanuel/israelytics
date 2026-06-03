@@ -213,19 +213,19 @@ export default function MapView({
     // map be pulled/flung past its bounds (padded translateExtent) and then ease
     // it back to the in-bounds fit when the gesture settles, like a native map.
     //
-    // Flow: through a pan we track velocity with a time-aware exponential filter
-    // (below) so it remembers the throw even when the final pointer samples are
-    // slow/sparse; on release we damp it by any pause before lifting, coast with
+    // Flow: through a pan we keep recent pointer positions; on release we read the
+    // throw velocity over a ~170ms look-back (long enough to reach past the natural
+    // slow-down as the hand lifts — a shorter window measures only that decelerating
+    // tail and the fling dies), damp it by any real pause before lifting, coast with
     // decaying velocity, then spring back to the constrained transform. Velocity is
     // in viewBox units/ms; programmatic moves (sourceEvent == null) don't feed it.
     const TIGHT: [[number, number], [number, number]] = [[0, 0], [VB, VB]];
     const PAD = VB * 0.55; // how far past the edge the map can be pulled/flung
     let momentumRAF = 0;
-    let vx = 0, vy = 0;                              // smoothed pan velocity, units/ms
-    let prevS: { t: number; x: number; y: number; k: number } | null = null;
-    let lastMoveT = 0;
-    const VEL_TAU = 50;       // ms; velocity smoothing constant (remembers the throw)
-    const FRICTION = 0.95, FLING_MIN = 0.04, STOP_MIN = 0.015; // tuned by feel
+    let vx = 0, vy = 0;                              // release velocity, units/ms
+    let pts: { t: number; x: number; y: number; k: number }[] = [];
+    const LOOKBACK = 170;     // ms; window the throw velocity is averaged over
+    const FRICTION = 0.975, FLING_MIN = 0.035, STOP_MIN = 0.01; // tuned by feel
     const stopMomentum = () => { if (momentumRAF) { cancelAnimationFrame(momentumRAF); momentumRAF = 0; } };
 
     // Clamp `t` so the viewport (the svg's viewBox extent) stays within `bounds`
@@ -252,38 +252,34 @@ export default function MapView({
     const zoom = d3.zoom<SVGSVGElement, unknown>()
       .scaleExtent([1, 60])
       .translateExtent(PADDED) // allow over-pan; spring-back fixes it on release
-      .on("start", (e) => { if (e.sourceEvent) { stopMomentum(); svg.interrupt(); vx = vy = 0; prevS = null; } })
+      .on("start", (e) => { if (e.sourceEvent) { stopMomentum(); svg.interrupt(); pts = []; } })
       .on("zoom", (e) => {
         render(e.transform);
         if (!e.sourceEvent) return;
-        // Track velocity with a time-aware exponential filter so it remembers the
-        // throw: the fast part of a flick survives even when the final samples are
-        // slow/sparse (which a fixed trailing window would average away to ~0).
         const now = performance.now(), t = e.transform;
-        if (prevS && t.k === prevS.k) {
-          const dt = now - prevS.t;
-          if (dt > 100) { vx = vy = 0; }            // a pause mid-drag = a fresh start
-          else if (dt > 0) {
-            const a = 1 - Math.exp(-dt / VEL_TAU);
-            vx += a * ((t.x - prevS.x) / dt - vx);
-            vy += a * ((t.y - prevS.y) / dt - vy);
-          }
-        } else {
-          vx = vy = 0;                              // first sample, or a scale change
-        }
-        prevS = { t: now, x: t.x, y: t.y, k: t.k };
-        lastMoveT = now;
+        pts.push({ t: now, x: t.x, y: t.y, k: t.k });
+        while (pts.length > 2 && now - pts[0].t > 260) pts.shift(); // keep ~last 260ms
       })
       .on("end", (e) => {
         if (!e.sourceEvent) return;
+        vx = vy = 0;
         const now = performance.now();
-        // Bleed the fling off by how long the pointer sat still before lifting,
-        // rather than a hard cutoff: people routinely decelerate/hold a beat before
-        // releasing. Normal release latency (≤ GRACE) keeps full speed; a deliberate
-        // hold decays to ~0 and so won't fling.
-        const GRACE = 40, TAU = 75;
-        const damp = Math.exp(-Math.max(0, now - lastMoveT - GRACE) / TAU);
-        vx *= damp; vy *= damp;
+        const last = pts[pts.length - 1];
+        if (last) {
+          // Oldest sample within the look-back (same scale) → average velocity over
+          // the throw, not just the final slow segment.
+          const ref = pts.find((p) => last.t - p.t <= LOOKBACK && p.k === last.k);
+          const dt = ref ? last.t - ref.t : 0;
+          if (ref && dt > 20) {
+            vx = (last.x - ref.x) / dt;
+            vy = (last.y - ref.y) / dt;
+          }
+          // Bleed off by any real pause before lifting: normal release latency
+          // (≤ GRACE) keeps full speed; a deliberate hold decays to ~0.
+          const GRACE = 40, TAU = 90;
+          const damp = Math.exp(-Math.max(0, now - last.t - GRACE) / TAU);
+          vx *= damp; vy *= damp;
+        }
         if (Math.hypot(vx, vy) < FLING_MIN) { springBack(); return; }
         let prev = now;
         const tick = (now: number) => {
