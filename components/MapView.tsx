@@ -158,11 +158,15 @@ export default function MapView({
     const layer = d3.select(labelLayerRef.current!);
     const FONT = 13, CHAR_W = 7.4, PAD_X = 7, PAD_Y = 6; // px box estimate for collision
     const LABEL_W0 = 150000; // weight gate at k=1 (~top 8 cities); eases as you zoom in
+    // Falloff is quadratic in zoom so the gate drops below the smallest city
+    // (weight ~62) by max zoom (k=60 → minW ~42): every city eventually earns a
+    // label if you zoom in close enough, while k=1 still shows only the top few.
+    // Collision below still prevents overlap, so they just fill in as space opens.
     const placeLabels = (t: d3.ZoomTransform) => {
       const ctm = gZoom.node()!.getScreenCTM();
       if (!ctm || !node.parentElement) return;
       const host = node.parentElement.getBoundingClientRect();
-      const minW = LABEL_W0 / t.k;
+      const minW = LABEL_W0 / (t.k * t.k);
       const placed: { l: number; t: number; r: number; b: number }[] = [];
       const shown: (LabelPt & { x: number; y: number })[] = [];
       for (const p of labelPts) {
