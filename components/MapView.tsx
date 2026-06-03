@@ -208,40 +208,49 @@ export default function MapView({
     };
 
     // Momentum / fling: d3.zoom has no inertia — a drag stops dead on release.
-    // We measure pointer velocity through the pan gesture and, on release, coast
-    // the transform with a decaying velocity until it runs out of speed or hits a
-    // translateExtent wall. Velocity is in viewBox units/ms; programmatic moves
-    // (sourceEvent == null) neither feed nor trigger the fling.
+    // We sample the pan position through the gesture and, on release, derive the
+    // velocity from the last few samples (a short trailing window — more robust on
+    // real pointer-event cadence than a single inter-event delta, and it lets a
+    // pause-before-release correctly cancel the fling). Then we coast the transform
+    // with a decaying velocity until it slows below a floor or hits a translateExtent
+    // wall. Velocity is in viewBox units/ms; programmatic moves (sourceEvent == null)
+    // neither feed nor trigger the fling.
     let momentumRAF = 0;
     let vx = 0, vy = 0;
-    let lastT: d3.ZoomTransform | null = null;
-    let lastTime = 0;
-    const FRICTION = 0.95, FLING_MIN = 0.08, STOP_MIN = 0.015; // tuned by feel
+    let samples: { t: number; x: number; y: number; k: number }[] = [];
+    const WINDOW = 90;        // ms of trailing motion the release velocity is read from
+    const FRICTION = 0.95, FLING_MIN = 0.05, STOP_MIN = 0.015; // tuned by feel
     const stopMomentum = () => { if (momentumRAF) { cancelAnimationFrame(momentumRAF); momentumRAF = 0; } };
 
     const zoom = d3.zoom<SVGSVGElement, unknown>()
       .scaleExtent([1, 60]).translateExtent([[0, 0], [VB, VB]])
-      .on("start", (e) => { if (e.sourceEvent) { stopMomentum(); vx = vy = 0; lastT = null; } })
+      .on("start", (e) => { if (e.sourceEvent) { stopMomentum(); samples = []; } })
       .on("zoom", (e) => {
         render(e.transform);
         if (!e.sourceEvent) return;
-        const now = performance.now(), t = e.transform;
-        // only track velocity while purely panning; a scale change resets it so
-        // zooming doesn't fling the map sideways.
-        if (lastT && t.k === lastT.k && now > lastTime) {
-          const dt = now - lastTime;
-          vx = 0.7 * ((t.x - lastT.x) / dt) + 0.3 * vx;
-          vy = 0.7 * ((t.y - lastT.y) / dt) + 0.3 * vy;
-        } else {
-          vx = vy = 0;
-        }
-        lastT = t; lastTime = now;
+        const t = e.transform;
+        samples.push({ t: performance.now(), x: t.x, y: t.y, k: t.k });
+        if (samples.length > 12) samples.shift();
       })
       .on("end", (e) => {
-        if (!e.sourceEvent || Math.hypot(vx, vy) < FLING_MIN) return;
-        let last = performance.now();
+        if (!e.sourceEvent) return;
+        vx = vy = 0;
+        const now = performance.now();
+        const last = samples[samples.length - 1];
+        // a pause before lifting (or a pinch/scale change at the end) means it
+        // wasn't a fling — leave velocity at zero.
+        if (last && now - last.t < 70) {
+          const ref = samples.find((s) => last.t - s.t <= WINDOW && s.k === last.k);
+          const dt = ref ? last.t - ref.t : 0;
+          if (ref && dt > 8) {
+            vx = (last.x - ref.x) / dt;
+            vy = (last.y - ref.y) / dt;
+          }
+        }
+        if (Math.hypot(vx, vy) < FLING_MIN) return;
+        let prev = now;
         const tick = (now: number) => {
-          const dt = Math.min(now - last, 40); last = now;
+          const dt = Math.min(now - prev, 40); prev = now;
           const decay = Math.pow(FRICTION, dt / 16.67);
           vx *= decay; vy *= decay;
           if (Math.hypot(vx, vy) < STOP_MIN) { momentumRAF = 0; return; }
