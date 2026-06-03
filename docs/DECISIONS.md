@@ -343,8 +343,9 @@ so the hole cuts through regardless of ring winding. Verified with the real d3 p
 ### 2026-06-03 — City-name label gate eases quadratically with zoom
 **What:** The weight gate that decides which cities get a name label
 (`minW = LABEL_W0 / k`) now falls off as `LABEL_W0 / k²`. At `k=1` it is unchanged
-(~150000, the top few cities); by max zoom (`k=60`) it drops to ~42, below the smallest
-city weight (62), so **every city eventually earns a label if you zoom in close enough**.
+(~150000, the top few cities); it crosses below the smallest city weight (62) around
+`k≈50`, so **every city eventually earns a label if you zoom in close enough** (and
+the deeper 240× range below leaves ample headroom past that crossover).
 **Why:** with the linear gate, max zoom only reached `minW=2500` — 1005 of 1213 cities
 could *never* show a label at any zoom, which is what the user hit. The existing
 weight-priority collision pass still prevents overlap, so labels just fill in
@@ -352,3 +353,25 @@ progressively as space opens up rather than all appearing at once.
 **Rejected:** removing the gate entirely (would dump every label the moment two centroids
 stop colliding, and thrash the collision loop at low zoom); a hard "show-all above k=N"
 switch (abrupt pop-in instead of a smooth fill).
+
+### 2026-06-03 — Deeper zoom + a clickable floor for the smallest dots
+**What:** raised the map's max zoom from 60× to 240× (`zoom.scaleExtent`) and bumped the
+point-dot minimum radius from 1.3 to 2.2 (`dotR` range).
+**Why:** the tiniest localities — small polygon enclaves and the ~30 point-dot settlements —
+were too small to hover or tap, and 60× wasn't enough to enlarge a tiny polygon to a clickable
+size. Dots are drawn at a constant screen size (`r = dotR(weight) / k`), so zoom alone never
+grows them; it only spreads them apart. So the fix is two-pronged: more zoom headroom for tiny
+polygons, and a slightly larger baseline hit target for the smallest dots.
+**Rejected:** an invisible oversized hit-circle per dot (extra layer + stroke-scaling bookkeeping
+under the zoom transform for marginal gain over a modestly larger visible radius).
+
+### 2026-06-03 — Faster zoom + double-click-to-zoom-at-cursor
+**What:** with the range now 240×, reaching the deep end was tedious. Sped it up three ways:
+button step 1.8→2.5× (≈6 clicks to max vs ≈9), wheel/trackpad delta ×3 over d3's default, and
+re-enabled double-click (`dblclick.zoomin`) to zoom 3× **toward the cursor**.
+**Why:** zoom is multiplicative (already "exponential"), so the real cost was the number of
+steps + the zoom-then-pan dance to center a tiny place. Double-click-at-cursor collapses both:
+aim at the place, double-click, it grows under the pointer. The constant per-step factor is kept
+(predictable) rather than accelerating held buttons.
+**Rejected:** accelerating zoom while a button is held (unpredictable, fiddly to tune); a much
+larger single-step factor (jumpy, easy to overshoot a small target).

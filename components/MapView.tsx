@@ -72,7 +72,7 @@ export default function MapView({
   }, [geo]);
 
   const dotR = useMemo(
-    () => d3.scaleSqrt().domain([0, d3.max(dots, (d) => d.weight) || 1]).range([1.3, 9]),
+    () => d3.scaleSqrt().domain([0, d3.max(dots, (d) => d.weight) || 1]).range([2.2, 9]),
     [dots]
   );
 
@@ -159,7 +159,7 @@ export default function MapView({
     const FONT = 13, CHAR_W = 7.4, PAD_X = 7, PAD_Y = 6; // px box estimate for collision
     const LABEL_W0 = 150000; // weight gate at k=1 (~top 8 cities); eases as you zoom in
     // Falloff is quadratic in zoom so the gate drops below the smallest city
-    // (weight ~62) by max zoom (k=60 → minW ~42): every city eventually earns a
+    // (weight ~62) around k≈50 (minW = LABEL_W0/k²): every city eventually earns a
     // label if you zoom in close enough, while k=1 still shows only the top few.
     // Collision below still prevents overlap, so they just fill in as space opens.
     const placeLabels = (t: d3.ZoomTransform) => {
@@ -210,7 +210,10 @@ export default function MapView({
     followTipRef.current = followPinnedTip;
 
     const zoom = d3.zoom<SVGSVGElement, unknown>()
-      .scaleExtent([1, 60]).translateExtent([[0, 0], [VB, VB]])
+      .scaleExtent([1, 240]).translateExtent([[0, 0], [VB, VB]])
+      // Faster wheel/trackpad zoom than d3's default (×0.002) so the deep end of
+      // the 240× range is reachable in a few scrolls, not dozens.
+      .wheelDelta((e) => -e.deltaY * (e.deltaMode === 1 ? 0.05 : e.deltaMode ? 1 : 0.002) * 3)
       .on("zoom", (e) => {
         gZoom.attr("transform", e.transform.toString());
         gDots.selectAll<SVGCircleElement, Dot>("circle").attr("r", (d) => dotR(d.weight) / e.transform.k);
@@ -218,6 +221,13 @@ export default function MapView({
         followPinnedTip();
       });
     svg.call(zoom).on("dblclick.zoom", null);
+    // Double-click (or double-tap) zooms IN toward the cursor — the fast way to
+    // home in on a tiny place without the zoom-then-pan dance. Default d3
+    // dblclick.zoom is disabled above so we control the factor + center.
+    svg.on("dblclick.zoomin", (e) => {
+      e.preventDefault();
+      svg.transition().duration(300).call(zoom.scaleBy, 3, d3.pointer(e, node));
+    });
     zoomRef.current = zoom;
     (node as any).__zoom_reset = () => svg.transition().duration(350).call(zoom.transform, d3.zoomIdentity);
     (node as any).__zoom_by = (f: number) => svg.transition().duration(250).call(zoom.scaleBy, f);
@@ -364,8 +374,8 @@ export default function MapView({
       <svg ref={svgRef} viewBox={`0 0 ${VB} ${VB}`} preserveAspectRatio="xMidYMid meet" />
       <div ref={labelLayerRef} className="labels-layer" />
       <div className="zoomctl glass">
-        <button onClick={() => (svgRef.current as any)?.__zoom_by?.(1.8)} title="התקרבות" aria-label="התקרבות">+</button>
-        <button onClick={() => (svgRef.current as any)?.__zoom_by?.(1 / 1.8)} title="התרחקות" aria-label="התרחקות">−</button>
+        <button onClick={() => (svgRef.current as any)?.__zoom_by?.(2.5)} title="התקרבות" aria-label="התקרבות">+</button>
+        <button onClick={() => (svgRef.current as any)?.__zoom_by?.(1 / 2.5)} title="התרחקות" aria-label="התרחקות">−</button>
         <div className="sep" />
         <button onClick={() => (svgRef.current as any)?.__zoom_reset?.()} title="איפוס תצוגה" aria-label="איפוס תצוגה">⤢</button>
       </div>
