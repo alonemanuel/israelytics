@@ -302,8 +302,11 @@ export default function MapView({
             springBack(); return;
           }
           const t0 = d3.zoomTransform(node);
-          // zoom.transform doesn't enforce translateExtent, so clamp to PADDED here.
-          const nt = constrainTo(d3.zoomIdentity.translate(t0.x + vx * dt, t0.y + vy * dt).scale(t0.k), PADDED);
+          // A fling coasts to the content edge and stops there (clamp to TIGHT) —
+          // it must NOT glide into the overscroll padding and then spring back,
+          // which reads as a jarring bounce on a hard flick. The padding is only
+          // for finger-dragging (rubber-band); spring-back handles that on release.
+          const nt = constrainTo(d3.zoomIdentity.translate(t0.x + vx * dt, t0.y + vy * dt).scale(t0.k), TIGHT);
           svg.call(zoom.transform, nt);
           if (Math.abs(nt.x - t0.x) < 0.01) vx = 0; // hit the overscroll wall — stop axis
           if (Math.abs(nt.y - t0.y) < 0.01) vy = 0;
