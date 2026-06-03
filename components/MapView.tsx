@@ -264,14 +264,20 @@ export default function MapView({
         vx = vy = 0;
         const now = performance.now();
         const last = samples[samples.length - 1];
-        // a pause before lifting (or a pinch/scale change at the end) means it
-        // wasn't a fling — leave velocity at zero.
-        if (last && now - last.t < 70) {
+        if (last) {
           const ref = samples.find((s) => last.t - s.t <= WINDOW && s.k === last.k);
           const dt = ref ? last.t - ref.t : 0;
           if (ref && dt > 8) {
             vx = (last.x - ref.x) / dt;
             vy = (last.y - ref.y) / dt;
+            // Bleed the fling off by how long the pointer sat still before lifting,
+            // rather than a hard cutoff: people routinely decelerate/hold ~50-150ms
+            // before releasing, and a hard gate made the fling "rarely work". Normal
+            // release latency (≤ GRACE) keeps full speed; a deliberate hold decays to
+            // ~0 and so won't fling.
+            const GRACE = 50, TAU = 130;
+            vx *= Math.exp(-Math.max(0, now - last.t - GRACE) / TAU);
+            vy *= Math.exp(-Math.max(0, now - last.t - GRACE) / TAU);
           }
         }
         if (Math.hypot(vx, vy) < FLING_MIN) { springBack(); return; }
