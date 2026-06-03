@@ -35,12 +35,15 @@ export default function MapView({
   water,
   dataset,
   step,
+  focus,
 }: {
   geo: GeoData;
   border: BorderGeometry | null;
   water: WaterData;
   dataset: Dataset | null;
   step: number;
+  /** bumped by the place search to zoom in on + select a city by CBS key */
+  focus: { key: string; n: number } | null;
 }) {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const tipRef = useRef<HTMLDivElement | null>(null);
@@ -51,6 +54,8 @@ export default function MapView({
   const pinnedRef = useRef(false); // tooltip pinned by tap (touch)
   const selectedRef = useRef<{ name: string; key: string } | null>(null); // currently pinned city
   const followTipRef = useRef<(() => void) | null>(null); // repositions pinned tip at its city
+  const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null); // for programmatic zoom
+  const focusCityRef = useRef<((key: string) => void) | null>(null); // zoom-to + select a city by key
 
   // Split the base map into polygon features and point dots (depends on geo only).
   const { features, dots } = useMemo(() => {
@@ -209,6 +214,7 @@ export default function MapView({
         followPinnedTip();
       });
     svg.call(zoom).on("dblclick.zoom", null);
+    zoomRef.current = zoom;
     (node as any).__zoom_reset = () => svg.transition().duration(350).call(zoom.transform, d3.zoomIdentity);
     (node as any).__zoom_by = (f: number) => svg.transition().duration(250).call(zoom.scaleBy, f);
 
@@ -292,6 +298,25 @@ export default function MapView({
       followTipRef.current?.();
     }
 
+    // Zoom in on a city and select it as if it had been clicked — driven by the
+    // place search. Centers the city's anchor at the stage middle, pins the
+    // tooltip (which then tracks the city as the transition runs).
+    const focusCity = (key: string) => {
+      const z = zoomRef.current;
+      const a = anchorsRef.current.get(key);
+      if (!z || !a) return;
+      const name = geo.cities[key]?.nameHe ?? "";
+      const t = d3.zoomIdentity.translate(VB / 2, VB / 2).scale(14).translate(-a[0], -a[1]);
+      svg.transition().duration(700).call(z.transform, t);
+      svg.selectAll(".sel").classed("sel", false);
+      svg.selectAll(`[data-key="${key}"]`).classed("sel", true);
+      pinnedRef.current = true;
+      selectedRef.current = { name, key };
+      render(name, key);
+      followTipRef.current?.();
+    };
+    focusCityRef.current = focusCity;
+
     const bind = (sel: any, nameOf: (d: any) => string, keyOf: (d: any) => string) =>
       sel
         .on("mousemove", (ev: any, d: any) => {
@@ -323,7 +348,12 @@ export default function MapView({
       tip.classed("show", false);
       svg.selectAll(".sel").classed("sel", false);
     });
-  }, [dataset, step]);
+  }, [dataset, step, geo]);
+
+  // place search picked a city: zoom in on it and select it
+  useEffect(() => {
+    if (focus) focusCityRef.current?.(focus.key);
+  }, [focus]);
 
   return (
     <div className="stage">
