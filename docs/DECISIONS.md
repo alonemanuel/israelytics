@@ -340,6 +340,52 @@ southern borders (no cities sit right at those) and distort the silhouette.
 so the hole cuts through regardless of ring winding. Verified with the real d3 projection
 (geoIdentity + cos-lat) rasterized headless, since a browser couldn't be installed here.
 
+### 2026-06-03 — Map pan: momentum fling + rubber-band spring-back
+**What:** Dragging the map can now be "flung" — on release the pan coasts with a
+decaying velocity (sampled over a short trailing time window, so a pause before
+lifting reads ~0 and doesn't fling). Pan is also no longer locked at the
+whole-country zoom: `translateExtent` is padded (`PAD = 0.55·VB`) so the map can be
+pulled/flung past its bounds at any zoom, and when the gesture/momentum settles it
+eases back to the in-bounds fit (`easeCubicOut`, 420ms) — the native rubber-band feel.
+**Why:** d3-zoom ships no inertia *by design* (d3/d3-zoom#67, d3/d3#2096), and with a
+hard `translateExtent` the k=1 view is fully locked, so a fling had nowhere to go and
+read as "broken." The ~40-line decay loop is the standard kinetic-scroll algorithm, not
+a bespoke wheel.
+**Gotcha (the load-bearing bit):** d3-zoom only enforces `translateExtent` for
+*interactive* gestures — programmatic `zoom.transform` calls are **not** constrained. So
+the momentum loop must clamp the transform itself each frame (to the padded bounds) using
+d3's own constrain math; the same math against the tight bounds gives the spring-back
+target. Without the manual clamp the fling flew off unconstrained and never settled.
+**Rejected:** (a) swapping `d3.zoom` for a library with built-in inertia (anvaka/panzoom) —
+would mean re-plumbing the four things d3.zoom is wired into (label placement, pinned-tooltip
+following, scaleExtent/translateExtent, the +/−/reset buttons) to save ~40 lines; (b) keeping
+the map locked at base zoom (zoom-to-fling) — the user wanted to swipe the map around freely.
+**Note:** verified headless (puppeteer): base-zoom fling coasts to the pad wall then springs
+back to centered; a zoomed-in fling coasts and stays put (no spurious snap). A pause-then-lift
+doesn't fling.
+
+### 2026-06-03 — Fling velocity: throw look-back, event timestamps, edge-clamp
+**What:** Three refinements to the fling, each a real bug found only against the live
+**touch/mobile** build (mouse/desktop testing — including headless and emulated touch —
+never surfaced them):
+- **Velocity = average over a ~170ms look-back** (oldest sample within the window →
+  last), not the last inter-sample delta. A short window measures only the
+  *decelerating tail* of a flick — the hand slows as it lifts — so it read the throw
+  as ≈0 and "flinging did nothing." 170ms reaches back into the fast part of the throw.
+- **Timestamps from each source event's own `timeStamp`**, not `performance.now()` at
+  handler time. On mobile, touch events can be delivered *batched within one animation
+  frame*, so `performance.now()` collapses to ~0 elapsed and velocity reads 0.
+- **Momentum coast clamps to the TIGHT bounds** (stops at the content edge), not the
+  padded bounds. A hard flick built enough speed to coast *past* the edge into the
+  overscroll padding and then spring back — a jarring bounce that read as "fast flicks
+  don't glide." The padding/rubber-band now applies to finger-dragging only.
+**Why:** the journey reached for several velocity estimators (trailing window → EMA →
+look-back); the look-back average is what held up across slow/fast/decelerating real
+flicks. The damp on a pre-lift pause keeps a deliberate hold from flinging while a prompt
+release (gap < grace) keeps full speed.
+**Note:** diagnosed with a temporary on-screen velocity/coast readout on the deployed
+preview (emulated touch flung fine, so the bug was invisible locally); removed before merge.
+
 ### 2026-06-03 — City-name label gate eases quadratically with zoom
 **What:** The weight gate that decides which cities get a name label
 (`minW = LABEL_W0 / k`) now falls off as `LABEL_W0 / k²`. At `k=1` it is unchanged

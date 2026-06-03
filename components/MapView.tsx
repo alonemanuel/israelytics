@@ -209,16 +209,111 @@ export default function MapView({
     };
     followTipRef.current = followPinnedTip;
 
+    const render = (t: d3.ZoomTransform) => {
+      gZoom.attr("transform", t.toString());
+      gDots.selectAll<SVGCircleElement, Dot>("circle").attr("r", (d) => dotR(d.weight) / t.k);
+      placeLabels(t);
+      followPinnedTip();
+    };
+
+    // Momentum / fling + rubber-band: d3.zoom has no inertia and, with a hard
+    // translateExtent, no over-pan either — so at k=1 (whole country fills the
+    // frame) the map is locked and a fling has nowhere to go. We instead let the
+    // map be pulled/flung past its bounds (padded translateExtent) and then ease
+    // it back to the in-bounds fit when the gesture settles, like a native map.
+    //
+    // Flow: through a pan we keep recent pointer positions; on release we read the
+    // throw velocity over a ~170ms look-back (long enough to reach past the natural
+    // slow-down as the hand lifts — a shorter window measures only that decelerating
+    // tail and the fling dies), damp it by any real pause before lifting, coast with
+    // decaying velocity, then spring back to the constrained transform. Velocity is
+    // in viewBox units/ms; programmatic moves (sourceEvent == null) don't feed it.
+    const TIGHT: [[number, number], [number, number]] = [[0, 0], [VB, VB]];
+    const PAD = VB * 0.55; // how far past the edge the map can be pulled/flung
+    let momentumRAF = 0;
+    let vx = 0, vy = 0;                              // release velocity, units/ms
+    let pts: { t: number; x: number; y: number; k: number }[] = [];
+    const LOOKBACK = 170;     // ms; window the throw velocity is averaged over
+    const FRICTION = 0.975, FLING_MIN = 0.035, STOP_MIN = 0.01; // tuned by feel
+    const stopMomentum = () => { if (momentumRAF) { cancelAnimationFrame(momentumRAF); momentumRAF = 0; } };
+
+    // Clamp `t` so the viewport (the svg's viewBox extent) stays within `bounds`
+    // — d3's own constrain math, which (unlike interactive drags) it does NOT
+    // apply to programmatic zoom.transform calls, so the momentum loop must do it
+    // itself. Used with PADDED to wall the fling, and with TIGHT to snap home.
+    const PADDED: [[number, number], [number, number]] = [[-PAD, -PAD], [VB + PAD, VB + PAD]];
+    const constrainTo = (t: d3.ZoomTransform, b: [[number, number], [number, number]]): d3.ZoomTransform => {
+      const dx0 = t.invertX(TIGHT[0][0]) - b[0][0];
+      const dx1 = t.invertX(TIGHT[1][0]) - b[1][0];
+      const dy0 = t.invertY(TIGHT[0][1]) - b[0][1];
+      const dy1 = t.invertY(TIGHT[1][1]) - b[1][1];
+      return t.translate(
+        dx1 > dx0 ? (dx0 + dx1) / 2 : Math.min(0, dx0) || Math.max(0, dx1),
+        dy1 > dy0 ? (dy0 + dy1) / 2 : Math.min(0, dy0) || Math.max(0, dy1)
+      );
+    };
+    const springBack = () => {
+      const t = d3.zoomTransform(node), target = constrainTo(t, TIGHT);
+      if (Math.abs(target.x - t.x) < 0.5 && Math.abs(target.y - t.y) < 0.5) return; // already fit
+      svg.transition().duration(420).ease(d3.easeCubicOut).call(zoom.transform, target);
+    };
+
     const zoom = d3.zoom<SVGSVGElement, unknown>()
-      .scaleExtent([1, 240]).translateExtent([[0, 0], [VB, VB]])
+      .scaleExtent([1, 240])
+      .translateExtent(PADDED) // allow over-pan; spring-back fixes it on release
       // Faster wheel/trackpad zoom than d3's default (×0.002) so the deep end of
       // the 240× range is reachable in a few scrolls, not dozens.
       .wheelDelta((e) => -e.deltaY * (e.deltaMode === 1 ? 0.05 : e.deltaMode ? 1 : 0.002) * 3)
+      .on("start", (e) => { if (e.sourceEvent) { stopMomentum(); svg.interrupt(); pts = []; } })
       .on("zoom", (e) => {
-        gZoom.attr("transform", e.transform.toString());
-        gDots.selectAll<SVGCircleElement, Dot>("circle").attr("r", (d) => dotR(d.weight) / e.transform.k);
-        placeLabels(e.transform);
-        followPinnedTip();
+        render(e.transform);
+        if (!e.sourceEvent) return;
+        // Use the source event's own timestamp, not performance.now(): on mobile,
+        // touch events can be delivered batched in one frame, so performance.now()
+        // at handler time collapses to ~0 elapsed and velocity reads 0.
+        const now = e.sourceEvent.timeStamp || performance.now(), t = e.transform;
+        pts.push({ t: now, x: t.x, y: t.y, k: t.k });
+        while (pts.length > 2 && now - pts[0].t > 260) pts.shift(); // keep ~last 260ms
+      })
+      .on("end", (e) => {
+        if (!e.sourceEvent) return;
+        vx = vy = 0;
+        const now = e.sourceEvent.timeStamp || performance.now();
+        const last = pts[pts.length - 1];
+        if (last) {
+          // Oldest sample within the look-back (same scale) → average velocity over
+          // the throw, not just the final slow segment.
+          const ref = pts.find((p) => last.t - p.t <= LOOKBACK && p.k === last.k);
+          const dt = ref ? last.t - ref.t : 0;
+          if (ref && dt > 20) {
+            vx = (last.x - ref.x) / dt;
+            vy = (last.y - ref.y) / dt;
+          }
+          // Bleed off by any real pause before lifting: normal release latency
+          // (≤ GRACE) keeps full speed; a deliberate hold decays to ~0.
+          const GRACE = 40, TAU = 90;
+          const damp = Math.exp(-Math.max(0, now - last.t - GRACE) / TAU);
+          vx *= damp; vy *= damp;
+        }
+        if (Math.hypot(vx, vy) < FLING_MIN) { springBack(); return; }
+        let prev = performance.now();
+        const tick = (now: number) => {
+          const dt = Math.min(now - prev, 40); prev = now;
+          const decay = Math.pow(FRICTION, dt / 16.67);
+          vx *= decay; vy *= decay;
+          if (Math.hypot(vx, vy) < STOP_MIN) { momentumRAF = 0; springBack(); return; }
+          const t0 = d3.zoomTransform(node);
+          // A fling coasts to the content edge and stops there (clamp to TIGHT) —
+          // it must NOT glide into the overscroll padding and then spring back,
+          // which reads as a jarring bounce on a hard flick. The padding is only
+          // for finger-dragging (rubber-band); spring-back handles that on release.
+          const nt = constrainTo(d3.zoomIdentity.translate(t0.x + vx * dt, t0.y + vy * dt).scale(t0.k), TIGHT);
+          svg.call(zoom.transform, nt);
+          if (Math.abs(nt.x - t0.x) < 0.01) vx = 0; // hit the overscroll wall — stop axis
+          if (Math.abs(nt.y - t0.y) < 0.01) vy = 0;
+          momentumRAF = requestAnimationFrame(tick);
+        };
+        momentumRAF = requestAnimationFrame(tick);
       });
     svg.call(zoom).on("dblclick.zoom", null);
     // Double-click (or double-tap) zooms IN toward the cursor — the fast way to
@@ -226,11 +321,13 @@ export default function MapView({
     // dblclick.zoom is disabled above so we control the factor + center.
     svg.on("dblclick.zoomin", (e) => {
       e.preventDefault();
+      stopMomentum(); svg.interrupt();
       svg.transition().duration(300).call(zoom.scaleBy, 3, d3.pointer(e, node));
     });
     zoomRef.current = zoom;
-    (node as any).__zoom_reset = () => svg.transition().duration(350).call(zoom.transform, d3.zoomIdentity);
-    (node as any).__zoom_by = (f: number) => svg.transition().duration(250).call(zoom.scaleBy, f);
+    (node as any).__stopMomentum = stopMomentum; // let other effects cancel an in-flight fling
+    (node as any).__zoom_reset = () => { stopMomentum(); svg.interrupt(); svg.transition().duration(350).call(zoom.transform, d3.zoomIdentity); };
+    (node as any).__zoom_by = (f: number) => { stopMomentum(); svg.interrupt(); svg.transition().duration(250).call(zoom.scaleBy, f); };
 
     placeLabels(d3.zoomIdentity); // initial pass
     // labels live in screen px, so reflow them whenever the stage resizes
@@ -239,7 +336,7 @@ export default function MapView({
       followPinnedTip();
     });
     if (node.parentElement) ro.observe(node.parentElement);
-    return () => ro.disconnect();
+    return () => { ro.disconnect(); stopMomentum(); };
   }, [features, dots, dotR, border, water]);
 
   // Recolor + (re)bind interactions whenever dataset or timestep changes.
@@ -320,8 +417,9 @@ export default function MapView({
       const a = anchorsRef.current.get(key);
       if (!z || !a) return;
       const name = geo.cities[key]?.nameHe ?? "";
+      (node as any).__stopMomentum?.(); // cancel any in-flight fling before the focus animation
       const t = d3.zoomIdentity.translate(VB / 2, VB / 2).scale(14).translate(-a[0], -a[1]);
-      svg.transition().duration(700).call(z.transform, t);
+      svg.interrupt().transition().duration(700).call(z.transform, t);
       svg.selectAll(".sel").classed("sel", false);
       svg.selectAll(`[data-key="${key}"]`).classed("sel", true);
       pinnedRef.current = true;
