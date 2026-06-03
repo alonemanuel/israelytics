@@ -207,14 +207,19 @@ export default function MapView({
       followPinnedTip();
     };
 
-    // Momentum / fling: d3.zoom has no inertia — a drag stops dead on release.
-    // We sample the pan position through the gesture and, on release, derive the
-    // velocity from the last few samples (a short trailing window — more robust on
-    // real pointer-event cadence than a single inter-event delta, and it lets a
-    // pause-before-release correctly cancel the fling). Then we coast the transform
-    // with a decaying velocity until it slows below a floor or hits a translateExtent
-    // wall. Velocity is in viewBox units/ms; programmatic moves (sourceEvent == null)
-    // neither feed nor trigger the fling.
+    // Momentum / fling + rubber-band: d3.zoom has no inertia and, with a hard
+    // translateExtent, no over-pan either — so at k=1 (whole country fills the
+    // frame) the map is locked and a fling has nowhere to go. We instead let the
+    // map be pulled/flung past its bounds (padded translateExtent) and then ease
+    // it back to the in-bounds fit when the gesture settles, like a native map.
+    //
+    // Flow: through a pan we buffer position samples; on release we read the
+    // velocity from a short trailing window (robust to real pointer cadence; a
+    // pause before lifting reads ~0 and so doesn't fling). We coast with decaying
+    // velocity, then spring back to the constrained transform. Velocity is in
+    // viewBox units/ms; programmatic moves (sourceEvent == null) don't feed it.
+    const TIGHT: [[number, number], [number, number]] = [[0, 0], [VB, VB]];
+    const PAD = VB * 0.55; // how far past the edge the map can be pulled/flung
     let momentumRAF = 0;
     let vx = 0, vy = 0;
     let samples: { t: number; x: number; y: number; k: number }[] = [];
@@ -222,9 +227,31 @@ export default function MapView({
     const FRICTION = 0.95, FLING_MIN = 0.05, STOP_MIN = 0.015; // tuned by feel
     const stopMomentum = () => { if (momentumRAF) { cancelAnimationFrame(momentumRAF); momentumRAF = 0; } };
 
+    // Clamp `t` so the viewport (the svg's viewBox extent) stays within `bounds`
+    // — d3's own constrain math, which (unlike interactive drags) it does NOT
+    // apply to programmatic zoom.transform calls, so the momentum loop must do it
+    // itself. Used with PADDED to wall the fling, and with TIGHT to snap home.
+    const PADDED: [[number, number], [number, number]] = [[-PAD, -PAD], [VB + PAD, VB + PAD]];
+    const constrainTo = (t: d3.ZoomTransform, b: [[number, number], [number, number]]): d3.ZoomTransform => {
+      const dx0 = t.invertX(TIGHT[0][0]) - b[0][0];
+      const dx1 = t.invertX(TIGHT[1][0]) - b[1][0];
+      const dy0 = t.invertY(TIGHT[0][1]) - b[0][1];
+      const dy1 = t.invertY(TIGHT[1][1]) - b[1][1];
+      return t.translate(
+        dx1 > dx0 ? (dx0 + dx1) / 2 : Math.min(0, dx0) || Math.max(0, dx1),
+        dy1 > dy0 ? (dy0 + dy1) / 2 : Math.min(0, dy0) || Math.max(0, dy1)
+      );
+    };
+    const springBack = () => {
+      const t = d3.zoomTransform(node), target = constrainTo(t, TIGHT);
+      if (Math.abs(target.x - t.x) < 0.5 && Math.abs(target.y - t.y) < 0.5) return; // already fit
+      svg.transition().duration(420).ease(d3.easeCubicOut).call(zoom.transform, target);
+    };
+
     const zoom = d3.zoom<SVGSVGElement, unknown>()
-      .scaleExtent([1, 60]).translateExtent([[0, 0], [VB, VB]])
-      .on("start", (e) => { if (e.sourceEvent) { stopMomentum(); samples = []; } })
+      .scaleExtent([1, 60])
+      .translateExtent(PADDED) // allow over-pan; spring-back fixes it on release
+      .on("start", (e) => { if (e.sourceEvent) { stopMomentum(); svg.interrupt(); samples = []; } })
       .on("zoom", (e) => {
         render(e.transform);
         if (!e.sourceEvent) return;
@@ -247,26 +274,26 @@ export default function MapView({
             vy = (last.y - ref.y) / dt;
           }
         }
-        if (Math.hypot(vx, vy) < FLING_MIN) return;
+        if (Math.hypot(vx, vy) < FLING_MIN) { springBack(); return; }
         let prev = now;
         const tick = (now: number) => {
           const dt = Math.min(now - prev, 40); prev = now;
           const decay = Math.pow(FRICTION, dt / 16.67);
           vx *= decay; vy *= decay;
-          if (Math.hypot(vx, vy) < STOP_MIN) { momentumRAF = 0; return; }
+          if (Math.hypot(vx, vy) < STOP_MIN) { momentumRAF = 0; springBack(); return; }
           const t0 = d3.zoomTransform(node);
-          const nt = d3.zoomIdentity.translate(t0.x + vx * dt, t0.y + vy * dt).scale(t0.k);
+          // zoom.transform doesn't enforce translateExtent, so clamp to PADDED here.
+          const nt = constrainTo(d3.zoomIdentity.translate(t0.x + vx * dt, t0.y + vy * dt).scale(t0.k), PADDED);
           svg.call(zoom.transform, nt);
-          const t1 = d3.zoomTransform(node); // clamped by translateExtent
-          if (Math.abs(t1.x - t0.x) < 0.01) vx = 0; // hit a wall — stop that axis
-          if (Math.abs(t1.y - t0.y) < 0.01) vy = 0;
+          if (Math.abs(nt.x - t0.x) < 0.01) vx = 0; // hit the overscroll wall — stop axis
+          if (Math.abs(nt.y - t0.y) < 0.01) vy = 0;
           momentumRAF = requestAnimationFrame(tick);
         };
         momentumRAF = requestAnimationFrame(tick);
       });
     svg.call(zoom).on("dblclick.zoom", null);
-    (node as any).__zoom_reset = () => { stopMomentum(); svg.transition().duration(350).call(zoom.transform, d3.zoomIdentity); };
-    (node as any).__zoom_by = (f: number) => { stopMomentum(); svg.transition().duration(250).call(zoom.scaleBy, f); };
+    (node as any).__zoom_reset = () => { stopMomentum(); svg.interrupt(); svg.transition().duration(350).call(zoom.transform, d3.zoomIdentity); };
+    (node as any).__zoom_by = (f: number) => { stopMomentum(); svg.interrupt(); svg.transition().duration(250).call(zoom.scaleBy, f); };
 
     placeLabels(d3.zoomIdentity); // initial pass
     // labels live in screen px, so reflow them whenever the stage resizes
