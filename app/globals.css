@@ -241,6 +241,50 @@ main {
   transform: rotate(45deg); pointer-events: none;
 }
 
+/* ---------- place search ---------- */
+.search { position: relative; flex: none; display: flex; align-items: center; }
+.search-icon {
+  position: absolute; inset-inline-start: 12px; top: 50%; transform: translateY(-50%);
+  width: 16px; height: 16px; color: var(--muted); pointer-events: none;
+}
+.search input {
+  appearance: none; -webkit-appearance: none;
+  background: var(--surface-solid); color: var(--ink);
+  border: 1px solid var(--border-strong); border-radius: 999px;
+  padding-block: 9px; padding-inline-start: 34px; padding-inline-end: 30px;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: var(--text-sm); font-weight: 600;
+  width: 168px; max-width: 40vw;
+  transition: border-color .15s, box-shadow .15s, width .2s ease;
+}
+.search input::placeholder { color: var(--muted); font-weight: 500; }
+.search input:hover { border-color: var(--accent); }
+.search input:focus-visible,
+.search input:focus {
+  outline: none; border-color: var(--accent); width: 220px;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.search-clear {
+  position: absolute; inset-inline-end: 8px; top: 50%; transform: translateY(-50%);
+  width: 20px; height: 20px; border-radius: 50%; border: none;
+  background: transparent; color: var(--muted); cursor: pointer;
+  font-size: 17px; line-height: 1; display: grid; place-items: center;
+}
+.search-clear:hover { color: var(--accent); }
+.search-list {
+  position: absolute; top: calc(100% + 6px); inset-inline-start: 0; inset-inline-end: 0;
+  z-index: 50; list-style: none; margin: 0; padding: 5px;
+  border-radius: var(--radius-md); max-height: 320px; overflow-y: auto;
+  min-width: 220px;
+}
+.search-list li {
+  padding: 8px 12px; border-radius: var(--radius-sm); cursor: pointer;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: var(--text-sm); font-weight: 600; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.search-list li.active { background: var(--accent-soft); color: var(--accent-strong); }
+
 /* ---------- map stage ---------- */
 .stage {
   position: absolute; inset: 0; z-index: 0;
@@ -493,7 +537,10 @@ main {
   .timeline { padding: 12px 8px; }
   .timeline .ticks { min-height: 150px; }
   .legend { font-size: var(--text-xs); padding: 9px 11px; }
+  .search input { width: 130px; max-width: 32vw; }
+  .search input:focus-visible, .search input:focus { width: 150px; max-width: 38vw; }
 }
 @media (max-width: 380px) {
-  .picker select { max-width: 44vw; }
+  .picker select { max-width: 40vw; }
+  .search input { width: 110px; }
 }
