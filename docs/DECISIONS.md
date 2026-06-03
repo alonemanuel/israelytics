@@ -363,3 +363,21 @@ the map locked at base zoom (zoom-to-fling) — the user wanted to swipe the map
 **Note:** verified headless (puppeteer): base-zoom fling coasts to the pad wall then springs
 back to centered; a zoomed-in fling coasts and stays put (no spurious snap). A pause-then-lift
 doesn't fling.
+
+### 2026-06-03 — Fling velocity: time-aware EMA, not a trailing window
+**What:** Replace the release-velocity estimate (net displacement over a fixed ~90ms
+trailing window) with a velocity tracked *continuously during the drag* via a
+time-aware exponential filter (`a = 1 - exp(-dt/VEL_TAU)`, `VEL_TAU≈50ms`). On release
+the tracked velocity is damped by any pause before lifting (`exp` decay past a ~40ms
+grace) and, if above `FLING_MIN`, coasts.
+**Why:** The trailing window made flinging "rarely work" — real pointer events arrive
+fast (≈16ms) during the quick part of a flick but slow/sparse (35-50ms apart) as the
+hand decelerates, so a fixed window often collapsed to just the final slow segment and
+read the throw as ≈0. The EMA *remembers* the fast motion, so one slow final sample
+can't zero it; a genuine multi-sample slowdown still decays it. Verified headless across
+linear / ease-in / ease-out / gentle flicks (all coast) vs 200-300ms holds (don't).
+**Rejected:** (a) peak instantaneous velocity over the window — over-flings on a
+front-loaded throw; (b) just widening the window — trades the decel-tail miss for
+averaging in even more of the slow tail. **Note:** the pause-damp uses a grace period so
+normal release latency keeps full speed; tightening its `TAU` only suppresses holds and
+never weakens a prompt fling (gap < grace ⇒ damp = 1).
