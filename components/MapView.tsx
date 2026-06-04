@@ -300,10 +300,17 @@ export default function MapView({
             vx = (last.x - ref.x) / dt;
             vy = (last.y - ref.y) / dt;
           }
-          // Bleed off by any real pause before lifting: normal release latency
-          // (≤ GRACE) keeps full speed; a deliberate hold decays to ~0.
+          // Bleed off by a *deliberate* pause before lifting — but measure it
+          // relative to the render cadence, not raw wall-clock. At high zoom each
+          // frame can take many ms to paint the up-scaled SVG, so the gap between
+          // the last delivered touchmove and the release is mostly render lag, not
+          // the user holding still; charging that as a "hold" zeroed the throw and
+          // made the fling do nothing once zoomed in. Subtract one frame's cadence
+          // so only a real pause (finger down, no movement beyond the lag) decays it.
+          const cadence = pts.length > 1 ? (last.t - pts[0].t) / (pts.length - 1) : 16;
+          const pause = Math.max(0, now - last.t - cadence);
           const GRACE = 40, TAU = 90;
-          const damp = Math.exp(-Math.max(0, now - last.t - GRACE) / TAU);
+          const damp = Math.exp(-Math.max(0, pause - GRACE) / TAU);
           vx *= damp; vy *= damp;
         }
         if (Math.hypot(vx, vy) < FLING_MIN) { springBack(); return; }
