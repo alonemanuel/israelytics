@@ -209,10 +209,21 @@ export default function MapView({
     };
     followTipRef.current = followPinnedTip;
 
+    // Keep the per-frame drag/fling work cheap: a fast flick must not be janked,
+    // because jank delays/batches the final touchmoves and the release-velocity then
+    // reads ~0 (so the throw gets damped away and never flings — a real-device-only
+    // failure that fast desktops never hit). The transform is applied synchronously
+    // (the map must track the finger), but the expensive, purely-decorative label
+    // collision pass is coalesced to a single rAF, and the dot radii — constant in
+    // screen px — are only rescaled when the zoom level changes, not on every pan.
+    let lastRenderK = -1, labelRAF = 0;
     const render = (t: d3.ZoomTransform) => {
       gZoom.attr("transform", t.toString());
-      gDots.selectAll<SVGCircleElement, Dot>("circle").attr("r", (d) => dotR(d.weight) / t.k);
-      placeLabels(t);
+      if (t.k !== lastRenderK) {
+        lastRenderK = t.k;
+        gDots.selectAll<SVGCircleElement, Dot>("circle").attr("r", (d) => dotR(d.weight) / t.k);
+      }
+      if (!labelRAF) labelRAF = requestAnimationFrame(() => { labelRAF = 0; placeLabels(d3.zoomTransform(node)); });
       followPinnedTip();
     };
 
@@ -289,10 +300,17 @@ export default function MapView({
             vx = (last.x - ref.x) / dt;
             vy = (last.y - ref.y) / dt;
           }
-          // Bleed off by any real pause before lifting: normal release latency
-          // (≤ GRACE) keeps full speed; a deliberate hold decays to ~0.
+          // Bleed off by a *deliberate* pause before lifting — but measure it
+          // relative to the render cadence, not raw wall-clock. At high zoom each
+          // frame can take many ms to paint the up-scaled SVG, so the gap between
+          // the last delivered touchmove and the release is mostly render lag, not
+          // the user holding still; charging that as a "hold" zeroed the throw and
+          // made the fling do nothing once zoomed in. Subtract one frame's cadence
+          // so only a real pause (finger down, no movement beyond the lag) decays it.
+          const cadence = pts.length > 1 ? (last.t - pts[0].t) / (pts.length - 1) : 16;
+          const pause = Math.max(0, now - last.t - cadence);
           const GRACE = 40, TAU = 90;
-          const damp = Math.exp(-Math.max(0, now - last.t - GRACE) / TAU);
+          const damp = Math.exp(-Math.max(0, pause - GRACE) / TAU);
           vx *= damp; vy *= damp;
         }
         if (Math.hypot(vx, vy) < FLING_MIN) { springBack(); return; }
@@ -336,7 +354,7 @@ export default function MapView({
       followPinnedTip();
     });
     if (node.parentElement) ro.observe(node.parentElement);
-    return () => { ro.disconnect(); stopMomentum(); };
+    return () => { ro.disconnect(); stopMomentum(); if (labelRAF) cancelAnimationFrame(labelRAF); };
   }, [features, dots, dotR, border, water]);
 
   // Recolor + (re)bind interactions whenever dataset or timestep changes.
